@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "agent-skills",
-  "description": "Developer workflow skills for AI coding agents — git housekeeping, merge request automation, and session analytics.",
+  "description": "Developer workflow and automation skills for AI coding agents — git housekeeping, MR/PR automation, session analytics, and Ansible pattern enforcement.",
   "owner": {
     "name": "Vinny Valdez",
     "url": "https://github.com/vvaldez"
@@ -12,6 +12,12 @@
       "description": "Git workflow automation: gentle branch cleanup (/tidy), unified MR creation (/ship), and session statistics (/stats).",
       "source": "./plugins/dev-workflow",
       "category": "productivity"
+    },
+    {
+      "name": "automation",
+      "description": "Ansible automation skills: audit and refactor codebases to follow battle-tested Ansible patterns (/ansibleize).",
+      "source": "./plugins/automation",
+      "category": "development"
     }
   ]
 }
