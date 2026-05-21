@@ -54,7 +54,27 @@ Classify each local branch:
 - **Active**: has a live remote tracking branch
 - **Local-only**: never pushed (no tracking info)
 
-### Step 4: Auto-Delete Merged Branches
+### Step 4: Switch Off Merged Current Branch
+
+If the current branch is merged into `origin/main` and is not `main`:
+
+1. Check working tree status with `git status --porcelain`
+2. **If clean**: auto-switch to main and pull:
+   ```bash
+   git checkout main
+   ```
+   ```bash
+   git pull --ff-only
+   ```
+   Report: `Switched to main (current branch was merged into origin/main)`
+3. **If dirty**: ask the user what to do:
+   - **Stash**: `git stash`, switch, delete, `git stash pop`
+   - **Skip**: proceed without switching (note the current branch cannot be deleted)
+
+If the pull fails (diverged), report it but do NOT force-pull. The branch switch still
+happened, so deletion of the old branch can proceed.
+
+### Step 5: Auto-Delete Merged Branches
 
 For branches that are merged into `origin/main` AND are not the current branch AND are not `main`:
 
@@ -65,7 +85,7 @@ git branch --delete <branch-name>
 Use `--delete` (safe delete), never `--delete --force`. Report each deletion. If `--delete`
 refuses (branch not fully merged from git's perspective), skip it and report — do not force.
 
-### Step 5: Handle Unmerged Branches with Deleted Remotes
+### Step 6: Handle Unmerged Branches with Deleted Remotes
 
 If any branches have `gone` tracking refs but are NOT merged, list them with their last commit
 date and message:
@@ -78,7 +98,7 @@ Ask the user what to do with each one. Options:
 - Delete it (use `git branch --delete --force` only with explicit user confirmation)
 - Keep it
 
-### Step 6: Final Report
+### Step 7: Final Report
 
 Show a clean summary:
 
