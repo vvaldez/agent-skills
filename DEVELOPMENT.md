@@ -62,19 +62,32 @@ agent-skills/
 
 6. **Update your installed plugin** — after pushing, refresh the cached plugin:
 
+   ```bash
+   claude plugins update dev-workflow@vvaldez-agent-skills
+   claude plugins update automation@vvaldez-agent-skills
    ```
-   claude plugins update
+
+   Then reload in your active session (no restart needed):
+
+   ```
+   /reload-plugins
    ```
 
    This pulls the latest commit from GitHub into `~/.claude/plugins/cache/`.
 
 ### Adding a New Skill
 
-1. Create the skill directory under `plugins/dev-workflow/skills/<skill-name>/`.
+1. Create the skill directory under the appropriate plugin:
+   - `plugins/dev-workflow/skills/<skill-name>/` — git workflows, session tools
+   - `plugins/automation/skills/<skill-name>/` — infrastructure, Ansible, scripting
 2. Write `SKILL.md` with YAML frontmatter (`name`, `description`).
 3. Add bundled resources if needed (`scripts/`, `references/`, `assets/`).
 4. Copy to `~/.claude/skills/` for local testing.
-5. Once stable, delete local copy, commit, push, and run `claude plugins update`.
+5. Once stable, delete local copy, commit, push, and update:
+   ```bash
+   claude plugins update <plugin-name>@vvaldez-agent-skills
+   /reload-plugins
+   ```
 
 ### Adding a New Plugin
 
@@ -98,18 +111,20 @@ Then create `plugins/automation/skills/<skill-name>/SKILL.md`.
 2. Create a branch: `feat/skill-name` or `fix/skill-name`.
 3. Follow the development workflow above.
 4. Submit a pull request with a description of what the skill does and how to test it.
-5. Once merged, users get the update on their next `claude plugins update`.
+5. Once merged, users get the update via `claude plugins update <plugin>@vvaldez-agent-skills`.
 
 ## How Users Get Updates
 
 Users install once:
 
-```
+```bash
 claude plugins marketplace add vvaldez/agent-skills
-claude plugins install dev-workflow
-claude plugins install automation
+claude plugins install dev-workflow@vvaldez-agent-skills
+claude plugins install automation@vvaldez-agent-skills
+/reload-plugins
 ```
 
 Claude Code caches the plugin locally at `~/.claude/plugins/cache/vvaldez-agent-skills/`
-and tracks the git commit SHA. When the user runs `claude plugins update`, it pulls
-the latest commit. No manual file copying, no symlinks — the plugin cache handles versioning.
+and tracks the git commit SHA. When the user runs
+`claude plugins update <plugin>@vvaldez-agent-skills` followed by `/reload-plugins`,
+it pulls the latest commit and hot-reloads without restarting.
