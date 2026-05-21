@@ -151,7 +151,26 @@ If pre-commit hooks modify files:
 
 ## Push + MR/PR Flow
 
-### Step 1: Push
+### Step 1: Check for Existing PR/MR
+
+Only if the branch already tracks a remote (skip for brand-new branches):
+
+**GitHub:**
+```bash
+gh pr list --head "$(git branch --show-current)" --state all --json number,state,url --limit 1
+```
+
+**GitLab:**
+```bash
+glab mr list --source-branch "$(git branch --show-current)" --json iid,state,web_url
+```
+
+Based on the result:
+- **Open PR/MR found** → Report the URL and stop. Do not create a duplicate.
+- **Merged/closed PR/MR found** → Proceed normally (new commits need a new PR/MR).
+- **No PR/MR found** → Proceed normally.
+
+### Step 2: Push
 
 ```bash
 git push --set-upstream origin $(git branch --show-current)
@@ -163,7 +182,7 @@ If push fails:
 - **"rejected" / "non-fast-forward"** → Branch diverged from remote. Ask user whether to
   force-push or pull first.
 
-### Step 2: Analyze Changes for Description
+### Step 3: Analyze Changes for Description
 
 ```bash
 git log origin/main..HEAD --oneline
@@ -178,7 +197,7 @@ If needed for context:
 git diff origin/main..HEAD
 ```
 
-### Step 3: Generate Description
+### Step 4: Generate Description
 
 **Style: objective and descriptive.** State what changed functionally. No marketing
 language, no selling, no subjective terms.
@@ -201,7 +220,7 @@ language, no selling, no subjective terms.
 Generated with [Claude Code](https://www.anthropic.com/claude-code)
 ```
 
-### Step 4: Create MR or PR
+### Step 5: Create MR or PR
 
 **GitLab (glab):**
 ```bash
@@ -226,7 +245,7 @@ If the CLI fails:
 - **No remote** → Suggest `git remote add origin <url>`
 - **CLI not installed** → Tell user to install `glab` or `gh`
 
-### Step 5: Report
+### Step 6: Report
 
 Output the MR/PR URL from the CLI response. Format:
 
@@ -271,4 +290,5 @@ Shipped!
 | CLI not authenticated | Tell user to run auth command for their platform |
 | CLI not installed | Tell user to install glab or gh |
 | Nothing to commit | Skip to Push + MR/PR if commits exist, otherwise report nothing to ship |
-| MR/PR already exists | Report existing URL instead of creating duplicate |
+| Open MR/PR already exists | Report existing URL, do not create duplicate |
+| Merged/closed MR/PR exists | Proceed — create new PR/MR for new commits |
