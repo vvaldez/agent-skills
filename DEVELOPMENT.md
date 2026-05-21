@@ -9,16 +9,23 @@ agent-skills/
 ├── .claude-plugin/
 │   └── marketplace.json          # Plugin manifest for Claude Code
 ├── plugins/
-│   └── dev-workflow/
+│   ├── dev-workflow/
+│   │   └── skills/
+│   │       ├── tidy/
+│   │       │   └── SKILL.md
+│   │       ├── ship/
+│   │       │   └── SKILL.md
+│   │       └── stats/
+│   │           ├── SKILL.md
+│   │           └── scripts/
+│   │               └── stats.py
+│   └── automation/
 │       └── skills/
-│           ├── tidy/
-│           │   └── SKILL.md
-│           ├── ship/
-│           │   └── SKILL.md
-│           └── stats/
+│           └── ansibleize/
 │               ├── SKILL.md
-│               └── scripts/
-│                   └── stats.py
+│               └── references/
+│                   ├── ansible-automation-patterns.md
+│                   └── ansible-cop-baseline.md
 ├── README.md
 ├── DEVELOPMENT.md
 └── LICENSE
@@ -98,9 +105,11 @@ Then create `plugins/automation/skills/<skill-name>/SKILL.md`.
 Users install once:
 
 ```
-/install-plugin github:vvaldez/agent-skills
+claude plugins marketplace add vvaldez/agent-skills
+claude plugins install dev-workflow
+claude plugins install automation
 ```
 
-Claude Code caches the plugin locally and tracks the git commit SHA. When the user
-runs `claude plugins update`, it pulls the latest commit. No manual file copying,
-no symlinks — the plugin cache handles versioning.
+Claude Code caches the plugin locally at `~/.claude/plugins/cache/vvaldez-agent-skills/`
+and tracks the git commit SHA. When the user runs `claude plugins update`, it pulls
+the latest commit. No manual file copying, no symlinks — the plugin cache handles versioning.
