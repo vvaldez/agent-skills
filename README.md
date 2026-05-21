@@ -27,17 +27,21 @@ Developer workflow and automation skills for AI coding agents. Built for daily u
 claude plugins marketplace add vvaldez/agent-skills
 
 # Install plugins
-claude plugins install dev-workflow
-claude plugins install automation
+claude plugins install dev-workflow@vvaldez-agent-skills
+claude plugins install automation@vvaldez-agent-skills
 
-# Restart Claude Code for skills to load
+# Reload without restarting
+/reload-plugins
 ```
 
 To update after new releases:
 
 ```bash
-claude plugins update dev-workflow
-claude plugins update automation
+claude plugins update dev-workflow@vvaldez-agent-skills
+claude plugins update automation@vvaldez-agent-skills
+
+# Then reload in your session
+/reload-plugins
 ```
 
 ### Ambient Ansible Patterns (CLAUDE.md Integration)
