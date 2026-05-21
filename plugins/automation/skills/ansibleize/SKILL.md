@@ -180,7 +180,7 @@ ambient context for all Ansible work:
 Follow the patterns in the /ansibleize skill's reference documents for all Ansible work.
 When the agent-skills plugin is installed, the references are at:
 
-  ~/.claude/plugins/cache/agent-skills/automation/*/skills/ansibleize/references/
+  ~/.claude/plugins/cache/vvaldez-agent-skills/automation/*/skills/ansibleize/references/
 
 Read `ansible-automation-patterns.md` before writing or modifying any Ansible code.
 Read `ansible-cop-baseline.md` for Red Hat Community of Practice baseline standards.
