@@ -22,8 +22,22 @@ Developer workflow and automation skills for AI coding agents. Built for daily u
 
 ### Claude Code
 
+```bash
+# Add the marketplace
+claude plugins marketplace add vvaldez/agent-skills
+
+# Install plugins
+claude plugins install dev-workflow
+claude plugins install automation
+
+# Restart Claude Code for skills to load
 ```
-/install-plugin github:vvaldez/agent-skills
+
+To update after new releases:
+
+```bash
+claude plugins update dev-workflow
+claude plugins update automation
 ```
 
 ### Other Agents
