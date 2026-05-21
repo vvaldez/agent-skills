@@ -1,6 +1,6 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
-  "name": "agent-skills",
+  "name": "vvaldez-agent-skills",
   "description": "Developer workflow and automation skills for AI coding agents — git housekeeping, MR/PR automation, session analytics, and Ansible pattern enforcement.",
   "owner": {
     "name": "Vinny Valdez",
