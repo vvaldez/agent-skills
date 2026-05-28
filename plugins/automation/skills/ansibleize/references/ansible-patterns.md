@@ -1,8 +1,11 @@
-# Ansible Automation Patterns
+# Ansible Patterns
 
 > Curated by Vinny Valdez, Chief Architect for Automation, Red Hat FieldCTO NA.
 > Developed since 2014, starting with OpenStack deployments before Red Hat acquired
 > Ansible, through 11+ years of production automation architecture.
+>
+> For Ansible Automation Platform-specific patterns (content tiers, secure logging), see
+> [ansible-automation-platform-patterns.md](ansible-automation-platform-patterns.md).
 >
 > For Red Hat Community of Practice baseline standards, see
 > [ansible-cop-baseline.md](ansible-cop-baseline.md).
@@ -36,8 +39,7 @@
 25. [Role Level](#role-level)
 26. [Task Level](#task-level)
 27. [Overall Principles](#overall-principles)
-28. [Secure Logging Toggle (REQUIRED)](#secure-logging-toggle-required)
-29. [ISO Building Patterns](#iso-building-patterns)
+28. [ISO Building Patterns](#iso-building-patterns)
 30. [Core Architecture](#core-architecture)
 31. [NoCloud ISO for Cloud-Init (Lightweight)](#nocloud-iso-for-cloud-init-lightweight)
 32. [Full Kickstart ISO (Heavy - Baremetal/Full Install)](#full-kickstart-iso-heavy---baremetalfull-install)
@@ -1093,9 +1095,9 @@ Tag/annotate objects with creation metadata for future identification.
 `ssh` for remote operations on hosts that have Python. Use Ansible's native connection
 system instead.
 
-This is a **hard stop** — the same tier-list rule that applies to all command/shell
-usage applies here. SSH is not an "external tool" like govc; it is literally what
-Ansible already does.
+This is a **hard stop** — the same [tier-list rule](ansible-automation-platform-patterns.md#module--collection-priority-order)
+that applies to all command/shell usage applies here. SSH is not an "external tool"
+like govc; it is literally what Ansible already does.
 
 ### The Anti-Pattern
 
@@ -1421,97 +1423,6 @@ Use a descriptive name that matches the loop content:
 - **Safety**: Prevent accidental destructive operations
 - **Clarity**: Code should be self-documenting through structure
 - **Maintainability**: Organize by lifecycle phase, not by function
-
-## Secure Logging Toggle (REQUIRED)
-
-**Pattern**: Every role that uses `no_log: true` MUST expose a `<role>_secure_logging` variable to toggle it. NEVER hardcode `no_log: true` — always use the variable.
-
-### Why?
-
-1. **Debugging**: Hardcoded `no_log: true` makes failures invisible — output shows `censored` with no actionable info
-2. **Development**: During role development, you NEED to see govc/API output to fix issues
-3. **Production safety**: Defaults to `true` so secrets are hidden unless explicitly disabled
-4. **Collection-wide toggle**: Falls back to `my_collection_secure_logging` so one extra var unmasks all roles
-
-### Standard Pattern
-
-Every role with credential-handling tasks:
-
-```yaml
-# defaults/main.yml
-<role>_secure_logging: "{{ my_collection_secure_logging | default(true) }}"
-```
-
-Every task that handles credentials:
-
-```yaml
-- name: Clone VM from template
-  community.vmware.vmware_guest:
-    hostname: "{{ <role>_vcenter_hostname }}"
-    password: "{{ <role>_vcenter_password }}"
-    # ...
-  no_log: "{{ <role>_secure_logging }}"
-```
-
-### Usage
-
-```bash
-# Normal run (secrets hidden):
-ansible-navigator run playbook.yml --mode stdout
-
-# Debug run (secrets visible — use with caution):
-ansible-navigator run playbook.yml -e my_collection_secure_logging=false --mode stdout
-
-# Debug single role:
-ansible-navigator run playbook.yml -e vm_deploy_secure_logging=false --mode stdout
-```
-
-### HARD RULE: no_log value MUST be a variable
-
-`no_log:` must ALWAYS reference the role's `_secure_logging` variable. Never `true`, never `false`, never omitted on credential tasks.
-
-### Anti-Patterns
-
-[ANTI-PATTERN] **Don't**: Hardcode `no_log: true`
-```yaml
-- name: Auth task
-  community.vmware.vmware_guest:
-    password: "{{ my_password }}"
-  no_log: true  # Can't debug failures! No way to toggle without editing code.
-```
-
-[ANTI-PATTERN] **Don't**: Hardcode `no_log: false`
-```yaml
-- name: Auth task
-  community.vmware.vmware_guest:
-    password: "{{ my_password }}"
-  no_log: false  # Secrets always visible!
-```
-
-[ANTI-PATTERN] **Don't**: Skip no_log entirely on credential tasks
-```yaml
-- name: Auth task
-  community.vmware.vmware_guest:
-    password: "{{ my_password }}"
-  # no_log missing — secrets in output!
-```
-
-[CORRECT] **Do**: Always use the role's secure_logging variable
-```yaml
-- name: Auth task
-  community.vmware.vmware_guest:
-    password: "{{ my_password }}"
-  no_log: "{{ my_role_secure_logging }}"
-```
-
-### Scope
-
-Apply `no_log` to tasks that handle:
-- Passwords / API tokens in module params or govc environment
-- Cloud-init templates containing credentials (RHSM, SSH keys)
-- Any `set_fact` that stores credentials (e.g., `__govc_env`)
-
-Do NOT apply `no_log` to tasks that only reference non-secret vars (datacenter names, VM names, file paths).
 
 ## ISO Building Patterns
 

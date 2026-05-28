@@ -58,7 +58,8 @@ When the agent-skills plugin is installed, the references are at:
 
   ~/.claude/plugins/cache/vvaldez-agent-skills/automation/*/skills/ansibleize/references/
 
-Read `ansible-automation-patterns.md` before writing or modifying any Ansible code.
+Read `ansible-patterns.md` for core Ansible patterns.
+Read `ansible-automation-platform-patterns.md` for AAP-specific patterns (content tiers, secure logging).
 Read `ansible-cop-baseline.md` for Red Hat Community of Practice baseline standards.
 
 For a full codebase audit, invoke `/ansibleize`.
