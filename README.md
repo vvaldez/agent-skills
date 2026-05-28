@@ -22,25 +22,33 @@ Developer workflow and automation skills for AI coding agents. Built for daily u
 
 ### Claude Code
 
-```bash
-# Add the marketplace
-claude plugins marketplace add vvaldez/agent-skills
+From the terminal:
 
-# Install plugins
+```bash
+claude plugins marketplace add vvaldez/agent-skills
 claude plugins install dev-workflow@vvaldez-agent-skills
 claude plugins install automation@vvaldez-agent-skills
+```
 
-# Reload without restarting
+Or from inside a Claude Code session:
+
+```
+/plugin marketplace add vvaldez/agent-skills
+/plugin install dev-workflow@vvaldez-agent-skills
+/plugin install automation@vvaldez-agent-skills
 /reload-plugins
 ```
 
-To update after new releases:
+To update after new releases (CLI only — `/plugin update` is not available in-session):
 
 ```bash
 claude plugins update dev-workflow@vvaldez-agent-skills
 claude plugins update automation@vvaldez-agent-skills
+```
 
-# Then reload in your session
+Then reload in your active session:
+
+```
 /reload-plugins
 ```
 
