@@ -19,12 +19,16 @@ you approve.
 
 ## Before You Begin
 
-1. **Read the patterns reference**: `references/ansible-automation-patterns.md` — the
-   authoritative patterns this skill enforces. Read the Table of Contents to understand
-   the pattern categories, then read sections as needed during the audit.
+1. **Read the patterns reference**: `references/ansible-patterns.md` — the
+   authoritative generic Ansible patterns this skill enforces. Read the Table of Contents
+   to understand the pattern categories, then read sections as needed during the audit.
 
-2. **Read the CoP baseline**: `references/ansible-cop-baseline.md` — Red Hat Community
-   of Practice standards. These are the floor; the patterns reference is the ceiling.
+2. **Read the AAP patterns**: `references/ansible-automation-platform-patterns.md` —
+   Ansible Automation Platform-specific patterns including content tier hierarchy and
+   secure logging conventions.
+
+3. **Read the CoP baseline**: `references/ansible-cop-baseline.md` — Red Hat Community
+   of Practice standards. These are the floor; the patterns references are the ceiling.
 
 3. **Detect what you're looking at** — the skill adapts to the input:
 
@@ -182,7 +186,8 @@ When the agent-skills plugin is installed, the references are at:
 
   ~/.claude/plugins/cache/vvaldez-agent-skills/automation/*/skills/ansibleize/references/
 
-Read `ansible-automation-patterns.md` before writing or modifying any Ansible code.
+Read `ansible-patterns.md` for core Ansible patterns.
+Read `ansible-automation-platform-patterns.md` for AAP-specific patterns (content tiers, secure logging).
 Read `ansible-cop-baseline.md` for Red Hat Community of Practice baseline standards.
 
 For a full codebase audit, invoke `/ansibleize`.

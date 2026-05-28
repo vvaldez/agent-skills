@@ -4,7 +4,7 @@
 >
 > This document captures the community standards for Ansible collections and roles
 > as maintained by the Red Hat Community of Practice. For opinionated patterns built
-> on top of these standards, see [ansible-automation-patterns.md](ansible-automation-patterns.md).
+> on top of these standards, see [ansible-patterns.md](ansible-patterns.md).
 
 ## Collection Structure
 
