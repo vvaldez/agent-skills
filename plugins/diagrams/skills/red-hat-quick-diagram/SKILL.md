@@ -12,6 +12,9 @@ description: >
 Generate process flow diagrams as self-contained HTML files with Red Hat branding.
 Auto-renders to PNG via Puppeteer for embedding in Docs/Slides.
 
+> Brand references derived from [red-hat-quick-deck](https://github.com/toddward/red-hat-quick-deck)
+> by Todd Ward. Diagram layout and node system are original to this skill.
+
 ## Before You Begin
 
 1. **Read `references/redhat-brand.md`** for the official color palette and typography.

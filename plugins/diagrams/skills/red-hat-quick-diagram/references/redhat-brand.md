@@ -1,5 +1,7 @@
 # Red Hat Brand Reference
 
+> Originally from [red-hat-quick-deck](https://github.com/toddward/red-hat-quick-deck) by Todd Ward.
+
 This file contains the official Red Hat brand colors, typography, and design principles.
 It is derived from the public Red Hat brand standards (https://www.redhat.com/en/about/brand/standards).
 
