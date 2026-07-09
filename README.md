@@ -18,6 +18,12 @@ Developer workflow and automation skills for AI coding agents. Built for daily u
 |-------|-------------|
 | `/ansibleize` | Audit and refactor any codebase to follow battle-tested Ansible patterns — module hierarchy, vault/security, role structure, tagging, idempotency. Converts bash/PowerShell scripts to proper Ansible. |
 
+### Diagrams
+
+| Skill | Description |
+|-------|-------------|
+| `/diagram` | Red Hat branded process flow diagrams — self-contained HTML with auto-PNG export. Nodes, arrows, decisions, dividers, watermarks. |
+
 ## Install
 
 ### Claude Code
@@ -28,6 +34,7 @@ From the terminal:
 claude plugins marketplace add vvaldez/agent-skills
 claude plugins install dev-workflow@vvaldez-agent-skills
 claude plugins install automation@vvaldez-agent-skills
+claude plugins install diagrams@vvaldez-agent-skills
 ```
 
 Or from inside a Claude Code session:
@@ -36,6 +43,7 @@ Or from inside a Claude Code session:
 /plugin marketplace add vvaldez/agent-skills
 /plugin install dev-workflow@vvaldez-agent-skills
 /plugin install automation@vvaldez-agent-skills
+/plugin install diagrams@vvaldez-agent-skills
 /reload-plugins
 ```
 
@@ -44,6 +52,7 @@ To update after new releases (CLI only — `/plugin update` is not available in-
 ```bash
 claude plugins update dev-workflow@vvaldez-agent-skills
 claude plugins update automation@vvaldez-agent-skills
+claude plugins update diagrams@vvaldez-agent-skills
 ```
 
 Then reload in your active session:
@@ -90,6 +99,7 @@ Skills follow the [Agent Skills](https://agentskills.io) open standard. Copy the
 - **`/ship`**: `git` + `glab` (GitLab) or `gh` (GitHub) — auto-detected from remote URL
 - **`/stats`**: `python3`
 - **`/ansibleize`**: Ansible knowledge (reads bundled reference docs, no external deps)
+- **`/diagram`**: Puppeteer for auto-PNG (`npx -y @mermaid-js/mermaid-cli` installs it)
 
 ## License
 

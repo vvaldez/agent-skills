@@ -18,6 +18,12 @@
       "description": "Ansible automation skills: audit and refactor codebases to follow battle-tested Ansible patterns (/ansibleize).",
       "source": "./plugins/automation",
       "category": "development"
+    },
+    {
+      "name": "diagrams",
+      "description": "Red Hat branded process flow diagrams as self-contained HTML with auto-PNG export (/diagram).",
+      "source": "./plugins/diagrams",
+      "category": "productivity"
     }
   ]
 }
