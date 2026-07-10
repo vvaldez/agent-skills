@@ -31,10 +31,12 @@ If agents are found, read the filenames and select 3-5 agents whose expertise is
 relevant to the topic being grilled. These become the **adversarial panel** — each question
 should be framed from the perspective of one of these experts.
 
-**Recommended panel members** (if matching agents are found):
-- **Security Engineer** — threat model, attack surface, credential exposure, trust boundaries
-- **Code Reviewer** — correctness, conventions, shell safety, test coverage gaps
+**Recommended panel composition** (if matching agents are found):
+- **An appropriate security persona** (e.g., Security Architect, AppSec Engineer, SecOps Engineer) — threat model, attack surface, credential exposure, trust boundaries
+- **A code review persona** (e.g., Code Reviewer, Minimal Change Engineer) — correctness, conventions, shell safety, test coverage gaps
 - Plus 1-3 topic-relevant experts (SRE, DevOps, Architect, etc.)
+
+Select the most relevant agent file by reading its description, not just its filename.
 
 **If no agents are found in `~/.claude/agents/`:**
 Skip the adversarial panel and inform the user:
@@ -46,15 +48,15 @@ Skip the adversarial panel and inform the user:
 
 Proceed with the grilling session without the panel — all other harness features still apply.
 
-**Announce the panel** at the start of the session:
+**Announce the panel** at the start of the session, using the actual agent names selected:
 
 > **Panel assembled for this grilling:**
-> - **Security Engineer** — threat model, attack surface, secrets handling
-> - **Code Reviewer** — correctness, conventions, shell safety, test gaps
+> - **Security Architect** — threat model, attack surface, secrets handling
+> - **Minimal Change Engineer** — scope creep, unnecessary abstractions
 > - **SRE** — reliability, failure modes, operational burden
 
-When asking questions, prefix each with the expert perspective driving it:
-`**[Security Engineer]** How are you protecting...`
+When asking questions, prefix each with the actual agent name driving it:
+`**[Security Architect]** How are you protecting...`
 
 Different experts may challenge the same decision from different angles — that's the point.
 
