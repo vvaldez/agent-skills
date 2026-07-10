@@ -36,8 +36,29 @@ After generating the HTML, auto-render to PNG using Puppeteer.
 1. User describes diagram in natural language or pastes a step list
 2. Ask the classification level (default: DRAFT)
 3. Generate the HTML with all nodes, arrows, dividers, and watermark
-4. Auto-screenshot to PNG via Puppeteer
-5. Report both file paths to user
+4. Render PNG (headless Chrome preferred, Puppeteer fallback)
+5. **Read the PNG back and visually verify** — arrows connect to edges, labels readable, no overlaps
+6. Report both file paths to user
+
+**HARD RULE:** Never declare "done" based on code changes alone. SVG coordinates and
+CSS `transform:rotate()` produce visual results that differ from what the code suggests.
+After every HTML edit: re-render PNG → read PNG → verify → report what you see.
+
+**HARD RULE: Use a subagent for all editing and verification.**
+
+Reading PNGs back into the main conversation repeatedly exhausts the context window in
+3-5 iterations. Instead:
+
+1. Spawn a **single long-lived subagent** (Agent tool) for the entire diagram task
+2. The subagent does ALL work: edit HTML → render PNG → read PNG → verify → iterate
+3. The subagent reports **text-only summaries** back to the main thread (never PNGs)
+4. The main thread **never reads the PNG** — only relays file paths to the user
+5. When the subagent reports all checks pass, the main thread reports the final paths
+
+The subagent prompt should include: the full diagram description, classification level,
+output file paths, and "read this skill's SKILL.md for all layout and arrow rules."
+
+Complex diagrams (25+ nodes) take 3-5+ iterations. Set this expectation with the user.
 
 ## Layout Approach
 
@@ -220,12 +241,14 @@ Use these CSS classes for diagram nodes. All use Red Hat brand colors.
   background: #292929;
   border: 2px solid #f5921b;
   color: #fff;
-  width: 100px; height: 100px;
+  width: 64px; height: 64px;  /* MUST be equal — never use min-width on diamonds */
+  padding: 8px;
   transform: rotate(45deg);
 }
 .decision span {
   transform: rotate(-45deg);
   display: block;
+  font-size: 11px;
 }
 ```
 
@@ -242,6 +265,54 @@ Use `<line>` for straight arrows, `<path>` for curved/bent arrows.
 Add `marker-end="url(#arrowhead)"` or `marker-end="url(#arrowhead-red)"`.
 
 Label arrows with `<text class="arrow-label">` positioned near the midpoint.
+For labels near node boundaries, use HTML `<div>` with `z-index:3` instead of SVG
+`<text>` — SVG renders behind HTML nodes (z-index 1 vs 2).
+
+### Arrow Connectivity Rules
+
+These rules prevent the most common visual bugs. Every one was learned from a real failure.
+
+**Arrow endpoints must land exactly on the node's visual edge:**
+- Rectangles: right edge = `left + width`, bottom = `top + height`
+- Circles: edge at `center ± radius` in the direction of the arrow
+- Rotated diamonds: visual edge = `center ± (size * 0.707)` — NOT `left + width`
+- Add 2-4px clearance from edge. Account for arrowhead refX (~8px)
+
+**Route arrows to node EDGES, never through nodes:**
+- SVG lines render behind HTML divs — a line through a box looks broken
+- Use `<path>` with L-shaped or Z-shaped waypoints to route around boxes
+- For "enter from bottom": route DOWN past the box, then UP into bottom edge
+
+**Route arrows around divider/embargo line text:**
+- Cross divider lines at LEFT or RIGHT edges, never through center text
+- Use L-shaped paths: horizontal first to clear text, then vertical through edge
+
+**Parallel arrow separation:**
+- When arrows run near a box edge, offset by 8px for visual separation
+
+### Decision Diamond Rules
+
+Diamonds are the hardest nodes to get right. CSS rotation shifts the visual bounding box.
+
+**Sizing:** Default 64x64. Only use 80x80 if text needs 4+ words.
+Never set `min-width` on `.decision` — it stretches the square into a rectangle.
+
+**Visual edge calculation for a diamond at `left:L, top:T, width:S, height:S`:**
+- Center: `(L + S/2, T + S/2)`
+- Right point: `(center_x + S*0.707, center_y)`
+- Bottom point: `(center_x, center_y + S*0.707)`
+- Left point: `(center_x - S*0.707, center_y)`
+- Top point: `(center_x, center_y - S*0.707)`
+
+**Branch labels (Yes/No/Known/Novel):**
+- Place OUTSIDE the arrow, past the diamond's rotated edge (at least 20px past)
+- Bold weight, 12px minimum, high-contrast color (`#63993d` green for YES, `#ee0000` red for NO, `#f5921b` orange for other branches)
+- Use HTML `<div>` with `z-index:3`, not SVG `<text>` — the rotated diamond covers SVG labels
+- Verify every label is readable in the PNG
+
+**BPMN connectors (A1, V1, etc.):**
+- If using lettered connector circles, always include a legend
+- Prefer dashed arrows without connectors for customer-facing diagrams — cleaner
 
 ## Divider Lines
 
@@ -292,10 +363,10 @@ Ask the user for classification level. Apply the matching watermark.
 ### Watermark CSS
 
 ```css
-/* DRAFT */
+/* DRAFT — position in existing padding, don't extend the page */
 .watermark-draft {
   position: absolute;
-  bottom: 20px; left: 20px;
+  bottom: 10px; right: 20px;
   color: #f5921b;
   font-size: 13px;
   border: 2px dashed #f5921b;
@@ -331,33 +402,68 @@ Ask the user for classification level. Apply the matching watermark.
 }
 ```
 
-## Auto-PNG Generation
+## PNG Rendering
 
-After writing the HTML file, render to PNG using Puppeteer:
+### Preferred: Headless Chrome (zero dependencies)
 
 ```bash
-NODE_PATH=$(find ~/.npm/_npx -path "*/node_modules" -maxdepth 3 2>/dev/null | head -1) \
+# OS detection — pick the right Chrome binary
+if [[ "$(uname)" == "Darwin" ]]; then
+  CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+elif command -v google-chrome &>/dev/null; then
+  CHROME="google-chrome"
+elif command -v chromium-browser &>/dev/null; then
+  CHROME="chromium-browser"
+elif command -v chromium &>/dev/null; then
+  CHROME="chromium"
+else
+  echo "No Chrome/Chromium found" >&2; exit 1
+fi
+
+"$CHROME" \
+  --headless --disable-gpu \
+  --screenshot="/absolute/path/to/output.png" \
+  --window-size=1920,1100 \
+  --force-device-scale-factor=2 \
+  "file:///absolute/path/to/diagram.html"
+```
+
+### Fallback: Puppeteer (better for web fonts)
+
+Puppeteer's `waitUntil: 'networkidle0'` ensures Google Fonts load before screenshot.
+Headless Chrome doesn't have this, so use Puppeteer when web font rendering is critical.
+
+```bash
+NODE_PATH=$(find ~/.npm/_npx -path "*/node_modules/puppeteer" -maxdepth 4 2>/dev/null \
+  | head -1 | sed 's|/puppeteer$||') \
 node -e "
 const puppeteer = require('puppeteer');
 (async () => {
   const browser = await puppeteer.launch({headless: true});
   const page = await browser.newPage();
-  await page.setViewport({width: 1500, height: 1900, deviceScaleFactor: 2});
-  await page.goto('file://HTML_PATH', {waitUntil: 'networkidle0'});
-  const body = await page.\$('body');
-  const box = await body.boundingBox();
-  await page.setViewport({width: Math.ceil(box.width) + 80, height: Math.ceil(box.height) + 80, deviceScaleFactor: 2});
-  await page.screenshot({path: 'PNG_PATH', fullPage: true});
+  await page.setViewport({width: 1870, height: 1100, deviceScaleFactor: 2});
+  await page.goto('file://' + process.argv[1], {waitUntil: 'networkidle0'});
+  await page.screenshot({path: process.argv[2], fullPage: true});
   await browser.close();
-  console.log('PNG saved to PNG_PATH');
 })();
-"
+" /absolute/path/to/diagram.html /absolute/path/to/output.png
 ```
 
-If Puppeteer is not installed, tell the user:
+If neither Chrome nor Puppeteer is available:
 ```bash
-npx -y @mermaid-js/mermaid-cli  # This installs puppeteer as a dependency
+npx -y @mermaid-js/mermaid-cli  # installs puppeteer as a dependency
 ```
+
+### Self-Verification (MANDATORY)
+
+After every HTML edit:
+1. Render PNG via headless Chrome (or Puppeteer fallback)
+2. Read the PNG back with the Read tool (Claude can view image files)
+3. Visually verify: arrows connect to edges, labels readable, no overlaps
+4. Report findings before declaring done
+
+**Why:** Claude cannot look at a browser window. The only way to verify is screenshot
+to file and Read it. There is no shortcut — the PNG step cannot be skipped.
 
 Report both file paths when done:
 ```
@@ -366,16 +472,28 @@ Diagram generated!
   PNG:  /path/to/diagram.png
 ```
 
-## Layout Tips
+## Layout Rules
 
-- **Start by listing all nodes** with their types and rough grouping (rows/columns)
-- **Place nodes top-to-bottom, left-to-right** following the process flow
-- **Use 160-200px horizontal spacing** between nodes in the same row
-- **Use 120-160px vertical spacing** between rows
-- **Keep the diagram width at 1400px** for consistent rendering
-- **Adjust `min-height` on `.diagram`** to fit all content
-- **Use `<small>` tags** inside nodes for secondary text
-- **Add `.note` divs** for contextual annotations outside the flow
+**SVG viewBox must match container:** If the diagram div is 1400x900, the SVG viewBox
+must be `0 0 1400 900`. Mismatched dimensions cause arrows to appear offset from nodes.
+
+**Container sizing:** Set height to content height + ~80px for watermark padding. Don't
+set height too large — creates dead whitespace below the diagram. Render, check, adjust.
+
+**Landscape target:** Aim for ~1.7:1 aspect ratio for Google Docs landscape. Viewport
+1870x1100 at deviceScaleFactor:2 produces crisp print-quality PNGs.
+
+**If content doesn't fit:** Split into two diagrams with continuation arrows (teal
+rounded-rect nodes labeled "Continues on [diagram name]").
+
+**Layout process:**
+- Start by listing all nodes with their types and rough grouping (rows/columns)
+- Place nodes top-to-bottom, left-to-right following the process flow
+- Use 160-200px horizontal spacing between nodes in the same row
+- Use 120-160px vertical spacing between rows
+- Keep the diagram width at 1400px for consistent rendering
+- Use `<small>` tags inside nodes for secondary text
+- Add `.note` divs for contextual annotations outside the flow
 
 ## What NOT to Do
 
