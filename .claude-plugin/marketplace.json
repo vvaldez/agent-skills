@@ -24,6 +24,12 @@
       "description": "Red Hat branded process flow diagrams as self-contained HTML with auto-PNG export (/diagram).",
       "source": "./plugins/diagrams",
       "category": "productivity"
+    },
+    {
+      "name": "grilling-extras",
+      "description": "Adversarial grilling harness: expert panel from ~/.claude/agents/, structured decision tables, enhanced CONTEXT.md format (/grill-harness).",
+      "source": "./plugins/grilling-extras",
+      "category": "productivity"
     }
   ]
 }
