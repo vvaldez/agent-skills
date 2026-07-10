@@ -220,7 +220,26 @@ language, no selling, no subjective terms.
 Generated with [Claude Code](https://www.anthropic.com/claude-code)
 ```
 
-### Step 5: Create MR or PR
+### Step 5: Cross-Repo Link Check (GitLab only)
+
+Only if the platform is GitLab AND `check-crossrepo-links` is in PATH:
+
+```bash
+command -v check-crossrepo-links >/dev/null 2>&1
+```
+
+If found, pipe the generated description through it:
+
+```bash
+echo "$description" | check-crossrepo-links
+```
+
+If exit 1: bare cross-repo references found (e.g., `core #24`, `installer !23`).
+Replace them with full URLs before proceeding. Re-run until exit 0.
+
+If `check-crossrepo-links` is not installed, skip this step silently.
+
+### Step 6: Create MR or PR
 
 **GitLab (glab):**
 ```bash
@@ -245,7 +264,7 @@ If the CLI fails:
 - **No remote** → Suggest `git remote add origin <url>`
 - **CLI not installed** → Tell user to install `glab` or `gh`
 
-### Step 6: Report
+### Step 7: Report
 
 Output the MR/PR URL from the CLI response. Format:
 
