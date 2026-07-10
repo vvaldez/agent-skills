@@ -18,10 +18,10 @@
 
 | Priority | Source | Approval | Examples |
 |----------|--------|----------|----------|
-| 1. Certified | Red Hat Automation Hub | Use freely | `redhat.rhel_system_roles`, `redhat.satellite` |
-| 2. Validated | Red Hat Automation Hub | Document reasoning | `vmware.vmware`, `kubernetes.core` |
-| 3. Community | Ansible Galaxy | Requires team approval | `community.vmware`, `community.general` |
-| 4. command/shell | Last resort | **Hard stop** — must justify | `ansible.builtin.command`, `ansible.builtin.shell` |
+| 1. Certified | Red Hat Automation Hub | Use freely | `ansible.builtin.*`, `vmware.vmware`, `vmware.vmware_rest`, `kubernetes.core`, `redhat.rhel_system_roles`, `redhat.satellite`, `hashicorp.terraform` |
+| 2. Validated | Red Hat Automation Hub | Document reasoning | `cloud.vmware_ops`, `cloud.terraform_ops`, `infra.aap_configuration`, `infra.aap_utilities`, `infra.ai` |
+| 3. Community | Ansible Galaxy | Requires team approval | `community.vmware`, `community.general`, `community.crypto` |
+| 4. command/shell | Last resort | **Hard stop** — must justify | `ansible.builtin.command`, `ansible.builtin.shell`, `ansible.builtin.raw` |
 
 ### Rules
 
@@ -39,16 +39,16 @@
 
 ### Anti-Patterns
 
-[ANTI-PATTERN] **Don't**: Use `community.vmware` when `vmware.vmware` (validated) covers the operation
+[ANTI-PATTERN] **Don't**: Use `community.vmware` when `vmware.vmware` (certified) covers the operation
 ```yaml
-# BAD: community when validated exists
+# BAD: community when certified exists
 - community.vmware.vmware_guest:
     hostname: "{{ vcenter }}"
 ```
 
 [CORRECT] **Do**: Use the highest-tier module available
 ```yaml
-# GOOD: validated content
+# GOOD: certified content
 - vmware.vmware.guest:
     hostname: "{{ vcenter }}"
 ```

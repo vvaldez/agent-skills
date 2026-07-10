@@ -39,8 +39,11 @@
 25. [Role Level](#role-level)
 26. [Task Level](#task-level)
 27. [Overall Principles](#overall-principles)
-28. [ISO Building Patterns](#iso-building-patterns)
-30. [Core Architecture](#core-architecture)
+28. [command/shell Justification Comments](#commandshell-justification-comments-required)
+29. [add_host Requires Explicit Connection Type](#add_host-requires-explicit-connection-type)
+30. [Jinja2 Gotchas](#jinja2-gotchas)
+31. [ISO Building Patterns](#iso-building-patterns)
+32. [Core Architecture](#core-architecture)
 31. [NoCloud ISO for Cloud-Init (Lightweight)](#nocloud-iso-for-cloud-init-lightweight)
 32. [Full Kickstart ISO (Heavy - Baremetal/Full Install)](#full-kickstart-iso-heavy---baremetalfull-install)
 33. [Playbook Calling Pattern](#playbook-calling-pattern)
@@ -1180,6 +1183,44 @@ Before using `ansible.builtin.command` with `ssh`:
 3. Is `raw` the only option (no Python)? → Justified, but document why in the task name
 4. Is this a one-off quick test? → Still use proper patterns; quick hacks become permanent
 
+### command/shell Justification Comments (REQUIRED)
+
+Every `ansible.builtin.command`, `ansible.builtin.shell`, or `ansible.builtin.raw` task
+MUST include a comment explaining why no module exists for the operation.
+
+```yaml
+# CORRECT — justification comment present
+- name: Get OpenShift version
+  ansible.builtin.command: oc version --short
+  # No ansible module provides cluster version info
+  register: __version
+  changed_when: false
+```
+
+Without the comment, reviewers cannot tell whether a module was missed or genuinely
+doesn't exist.
+
+## add_host Requires Explicit Connection Type
+
+When a play uses `connection: local`, dynamically added hosts via `add_host` inherit
+the local connection. Tasks delegated to those hosts run locally instead of over SSH.
+
+```yaml
+# [ANTI-PATTERN] — inherits connection: local from play
+- name: Add VM to inventory
+  ansible.builtin.add_host:
+    name: "{{ vm_ip }}"
+    groups: drift_vms
+
+# [CORRECT] — explicit SSH connection
+- name: Add VM to inventory
+  ansible.builtin.add_host:
+    name: "{{ vm_ip }}"
+    groups: drift_vms
+    ansible_connection: ssh
+    ansible_become_exe: /usr/bin/sudo  # non-login PATH may miss /usr/bin
+```
+
 ---
 
 # Validation Patterns
@@ -1390,6 +1431,60 @@ Use a descriptive name that matches the loop content:
       - "✓ Configuration Validated Successfully"
       - "=========================================="
       - "All checks passed, ready to proceed"
+```
+
+---
+
+# Jinja2 Gotchas
+
+## regex_search Returns None, Not Undefined
+
+`regex_search` returns `None` on no match. Jinja2's `default()` filter only catches
+undefined variables unless the second boolean argument is `true`.
+
+```yaml
+# [ANTI-PATTERN] — default() only catches undefined, not None
+- ansible.builtin.set_fact:
+    version: "{{ value | regex_search('(\\d+)', '\\1') | default('') }}"
+    # If no match: 'NoneType' object is not iterable
+
+# [CORRECT] — default(value, true) catches None/false/empty too
+- ansible.builtin.set_fact:
+    version: "{{ value | regex_search('(\\d+)', '\\1') | default([''], true) | first }}"
+```
+
+## Python Regex Backreference Ambiguity
+
+Python's `re` module parses `\1` followed by digits as a single backreference number.
+Use `\g<N>` named group syntax when the backreference is followed by digits.
+
+```yaml
+# [ANTI-PATTERN] — \1 followed by digits is parsed as group 12
+replace: '\12m'  # Interpreted as backreference to group 12
+
+# [CORRECT] — named group syntax avoids ambiguity
+replace: '\g<1>2m'  # Backreference to group 1, followed by literal "2m"
+```
+
+## include_vars Evaluates Jinja Templates in Loaded YAML
+
+`include_vars` with `name:` namespace still evaluates Jinja templates inside loaded
+YAML values during argument spec validation. Loading defaults files that contain Jinja
+referencing vars from other contexts causes undefined errors.
+
+```yaml
+# [ANTI-PATTERN] — include_vars evaluates Jinja during arg spec validation
+# Given defaults/main.yml contains: src: "templates/cloud-init-{{ ssh_user }}.yml"
+- name: Load role defaults
+  ansible.builtin.include_vars:
+    file: "roles/my_role/defaults/main.yml"
+    name: my_defaults
+  # FAILS: 'ssh_user' is undefined
+
+# [CORRECT] — inline the specific values you need
+- name: Set required config
+  ansible.builtin.set_fact:
+    config_file: "templates/cloud-init-{{ actual_ssh_user }}.yml"
 ```
 
 ---

@@ -54,10 +54,12 @@ Check the module priority hierarchy from the patterns reference:
 
 | Tier | Source | Requirement |
 |------|--------|-------------|
-| 1 | Certified (`redhat.*`, `ansible.builtin.*`) | Preferred |
-| 2 | Validated (`cloud.*`, `infra.*`) | Acceptable |
-| 3 | Community (`community.general.*`) | Requires justification |
+| 1 | Certified (`ansible.builtin.*`, `vmware.vmware`, `kubernetes.core`, `redhat.*`) | Preferred |
+| 2 | Validated (`cloud.*`, `infra.*`) | Acceptable — document reasoning |
+| 3 | Community (`community.general.*`, `community.vmware.*`) | Requires justification |
 | 4 | Command/Shell | Last resort — search `ansible-doc -l` first |
+
+See `references/ansible-automation-platform-patterns.md` for the full tier list with examples.
 
 Flag any `ansible.builtin.command`, `ansible.builtin.shell`, or `ansible.builtin.raw`
 task that has a proper module replacement. This is the most common violation.
