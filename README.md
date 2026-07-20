@@ -30,6 +30,12 @@ Developer workflow and automation skills for AI coding agents. Built for daily u
 |-------|-------------|
 | `/grill-harness` | Adversarial grilling harness — assembles expert panel from `~/.claude/agents/`, adds structured decision tables, enhanced CONTEXT.md format. Extends upstream `/grilling`. |
 
+### Handoff Extras
+
+| Skill | Description |
+|-------|-------------|
+| `/handoff-issue` | Session handoffs as GitHub issues — labeled `handoff`, close-when-consumed, dedup against existing tracked work. Extends upstream `/handoff`; falls back to markdown when no tracker. |
+
 ## Install
 
 ### Claude Code
@@ -42,6 +48,7 @@ claude plugins install dev-workflow@vvaldez-agent-skills
 claude plugins install automation@vvaldez-agent-skills
 claude plugins install diagrams@vvaldez-agent-skills
 claude plugins install grilling-extras@vvaldez-agent-skills
+claude plugins install handoff-extras@vvaldez-agent-skills
 ```
 
 Or from inside a Claude Code session:
@@ -52,6 +59,7 @@ Or from inside a Claude Code session:
 /plugin install automation@vvaldez-agent-skills
 /plugin install diagrams@vvaldez-agent-skills
 /plugin install grilling-extras@vvaldez-agent-skills
+/plugin install handoff-extras@vvaldez-agent-skills
 /reload-plugins
 ```
 
@@ -62,6 +70,7 @@ claude plugins update dev-workflow@vvaldez-agent-skills
 claude plugins update automation@vvaldez-agent-skills
 claude plugins update diagrams@vvaldez-agent-skills
 claude plugins update grilling-extras@vvaldez-agent-skills
+claude plugins update handoff-extras@vvaldez-agent-skills
 ```
 
 Then reload in your active session:
@@ -110,6 +119,7 @@ Skills follow the [Agent Skills](https://agentskills.io) open standard. Copy the
 - **`/ansibleize`**: Ansible knowledge (reads bundled reference docs, no external deps)
 - **`/diagram`**: Puppeteer for auto-PNG (`npx -y @mermaid-js/mermaid-cli` installs it)
 - **`/grill-harness`**: Optional: `~/.claude/agents/` with expert personas (e.g., from [agency-agents](https://github.com/msitarzewski/agency-agents)). Works without agents but panel feature is skipped.
+- **`/handoff-issue`**: `gh` (GitHub CLI, authenticated). Without it, falls back to upstream `/handoff` markdown behavior.
 
 ## License
 
