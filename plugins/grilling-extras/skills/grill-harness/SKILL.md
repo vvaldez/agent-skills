@@ -3,10 +3,11 @@ name: grill-harness
 description: >
   Adversarial grilling harness that extends upstream /grilling with an expert panel,
   structured decision output, and enhanced CONTEXT.md format. Scans ~/.claude/agents/
-  for available expert personas and assembles a challenge panel. Works with /grilling,
-  /grill-with-docs, /grill-me, and cascades into /wayfinder sessions that invoke grilling.
-  Use when user says /grill-harness, "grill with experts", "adversarial review",
-  "challenge this with a panel", or wants structured decision tables from grilling.
+  for available expert personas and assembles a challenge panel. Composes with /grilling,
+  /grill-with-docs, /grill-me, and /wayfinder sessions that invoke grilling.
+  Use when user says /grill-harness, /grilling, /grill-with-docs, /grill-me,
+  "grill with experts", "adversarial review", "challenge this with a panel",
+  or wants structured decision tables from grilling.
 ---
 
 # Grill Harness
@@ -15,9 +16,11 @@ Extends upstream `/grilling` with an adversarial expert panel, structured decisi
 and enhanced documentation format. Works standalone or composed with `/grill-with-docs`
 and `/domain-modeling`.
 
-This skill adds behavior ON TOP of `/grilling` — it does not replace it. When `/wayfinder`
-invokes `/grilling` inside a ticket, these enhancements cascade automatically if this
-skill is active.
+This skill adds behavior ON TOP of `/grilling` — it does not replace it. It activates
+alongside any grilling skill (`/grilling`, `/grill-with-docs`, `/grill-me`) via matching
+trigger phrases in the description. When both this skill and an upstream grilling skill
+load, apply the harness enhancements (panel, decisions, enhanced format) to the upstream
+session.
 
 ## Step 1: Assemble the Adversarial Panel
 
@@ -156,6 +159,8 @@ This harness composes with upstream skills — it extends, never replaces:
 | Composition | What happens |
 |-------------|-------------|
 | `/grill-harness` alone | Runs `/grilling` with adversarial panel + decision output |
-| `/grill-with-docs` + `/grill-harness` | Adds panel + decisions to the docs-aware grilling session |
-| `/wayfinder` → `/grilling` | Panel + decisions cascade into wayfinder grilling tickets |
-| `/grill-harness` + `/domain-modeling` | Panel challenges domain terms; enhanced CONTEXT.md format used |
+| `/grill-with-docs` | Auto-chains — harness activates alongside, adds panel + decisions |
+| `/grill-me` | Auto-chains — harness activates alongside, adds panel + decisions |
+| `/grilling` | Auto-chains — harness activates alongside, adds panel + decisions |
+| `/wayfinder` → `/grilling` | Panel + decisions apply when wayfinder invokes grilling |
+| Any grilling + `/domain-modeling` | Panel challenges domain terms; enhanced CONTEXT.md format used |
