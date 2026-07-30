@@ -8,28 +8,24 @@ How to develop, test, and publish skills in this repo.
 agent-skills/
 ├── .claude-plugin/
 │   └── marketplace.json          # Plugin manifest for Claude Code
+├── decisions/                    # Architecture Decision Records
+│   └── ADR-001-skill-extras-plugin.md
 ├── plugins/
-│   ├── dev-workflow/
-│   │   └── skills/
-│   │       ├── tidy/
-│   │       │   └── SKILL.md
-│   │       ├── ship/
-│   │       │   └── SKILL.md
-│   │       └── stats/
-│   │           ├── SKILL.md
-│   │           └── scripts/
-│   │               └── stats.py
-│   └── automation/
-│       └── skills/
-│           └── ansibleize/
-│               ├── SKILL.md
-│               └── references/
-│                   ├── ansible-automation-patterns.md
-│                   └── ansible-cop-baseline.md
+│   ├── dev-workflow/             # Git workflow tools (tidy, ship, stats)
+│   ├── automation/               # Ansible patterns (ansibleize)
+│   ├── skill-extras/             # Upstream skill compositions (grill-harness, overrides)
+│   ├── diagrams/                 # Red Hat branded diagram generation
+│   └── handoff-extras/           # Session handoffs as GitHub issues
 ├── README.md
 ├── DEVELOPMENT.md
 └── LICENSE
 ```
+
+### Architecture decisions
+
+Significant design choices are recorded in `decisions/ADR-NNN-*.md`. Read these before
+adding a new plugin or skill that layers on upstream skills — the conventions are
+non-obvious without context.
 
 ## Development Workflow
 
