@@ -36,6 +36,12 @@
       "description": "Session handoffs as GitHub issues: extends /handoff to publish a labeled, close-when-consumed issue instead of a markdown file, with dedup against existing tracked work (/handoff-issue).",
       "source": "./plugins/handoff-extras",
       "category": "productivity"
+    },
+    {
+      "name": "skill-overrides",
+      "description": "Policy overrides for upstream skills: suppresses AI-generated disclaimers from /triage comments and /code-review MR output (/triage-override, /code-review-override).",
+      "source": "./plugins/skill-overrides",
+      "category": "productivity"
     }
   ]
 }
