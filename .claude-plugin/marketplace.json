@@ -27,7 +27,7 @@
     },
     {
       "name": "grilling-extras",
-      "description": "Adversarial grilling harness: expert panel from ~/.claude/agents/, structured decision tables, enhanced CONTEXT.md format (/grill-harness).",
+      "description": "DEPRECATED: grill-harness has moved to skill-extras. Install skill-extras@vvaldez-agent-skills instead.",
       "source": "./plugins/grilling-extras",
       "category": "productivity"
     },
@@ -35,6 +35,12 @@
       "name": "handoff-extras",
       "description": "Session handoffs as GitHub issues: extends /handoff to publish a labeled, close-when-consumed issue instead of a markdown file, with dedup against existing tracked work (/handoff-issue).",
       "source": "./plugins/handoff-extras",
+      "category": "productivity"
+    },
+    {
+      "name": "skill-extras",
+      "description": "Upstream skill compositions: adversarial grilling harness (/grill-harness), triage disclaimer suppression (/triage-override), code-review disclaimer suppression (/code-review-override).",
+      "source": "./plugins/skill-extras",
       "category": "productivity"
     }
   ]
