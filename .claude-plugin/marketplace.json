@@ -27,7 +27,7 @@
     },
     {
       "name": "grilling-extras",
-      "description": "Adversarial grilling harness: expert panel from ~/.claude/agents/, structured decision tables, enhanced CONTEXT.md format (/grill-harness).",
+      "description": "DEPRECATED: grill-harness has moved to skill-extras. Install skill-extras@vvaldez-agent-skills instead.",
       "source": "./plugins/grilling-extras",
       "category": "productivity"
     },
@@ -38,9 +38,9 @@
       "category": "productivity"
     },
     {
-      "name": "skill-overrides",
-      "description": "Policy overrides for upstream skills: suppresses AI-generated disclaimers from /triage comments and /code-review MR output (/triage-override, /code-review-override).",
-      "source": "./plugins/skill-overrides",
+      "name": "skill-extras",
+      "description": "Upstream skill compositions: adversarial grilling harness (/grill-harness), triage disclaimer suppression (/triage-override), code-review disclaimer suppression (/code-review-override).",
+      "source": "./plugins/skill-extras",
       "category": "productivity"
     }
   ]
