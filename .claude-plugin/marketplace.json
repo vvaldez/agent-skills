@@ -45,7 +45,7 @@
     },
     {
       "name": "local-model",
-      "description": "Offload bulk, low-judgement text work to a locally-hosted model so it never enters the agent's context: cheap first-pass diff review (/local-review). Requires the localllm tooling; Windows and PowerShell 5.1.",
+      "description": "Offload bulk, low-judgement text work to a locally-hosted model so it never enters the agent's context: cheap first-pass diff review (/local-review). NOT SELF-CONTAINED - requires the separate localllm tooling, which is not bundled here and not publicly available, plus a running local model worker, Windows and PowerShell 5.1. Without those the skill reports that it cannot run and stops.",
       "source": "./plugins/local-model",
       "category": "development"
     }
