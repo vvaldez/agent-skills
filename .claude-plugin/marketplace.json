@@ -9,7 +9,7 @@
   "plugins": [
     {
       "name": "dev-workflow",
-      "description": "Git workflow automation: gentle branch cleanup (/tidy), unified MR creation (/ship), and session statistics (/stats).",
+      "description": "Git workflow automation: gentle branch cleanup (/tidy), unified MR creation (/ship), session statistics (/stats), issue-to-MR pipeline (/issue-to-mr), and review-feedback follow-through (/mr-followthrough).",
       "source": "./plugins/dev-workflow",
       "category": "productivity"
     },
