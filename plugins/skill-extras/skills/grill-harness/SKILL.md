@@ -95,7 +95,9 @@ When the grilling session is complete and all decisions are locked:
 
 ### 2. Write a decision record
 
-Filename: `grill-decisions-YYYYMMDD.md` (using today's date).
+Path: `docs/grill-decisions/grill-decisions-YYYYMMDD.md` (using today's date),
+relative to the working directory the session was run from. Create the
+`docs/grill-decisions/` directory first if it does not exist.
 If the file exists (multiple sessions same day), append with a section divider.
 
 ```markdown
@@ -122,7 +124,20 @@ If the file exists (multiple sessions same day), append with a section divider.
 - Triggered by: [the original request]
 ```
 
-This file is a local working artifact, not committed to git.
+### 3. Keep the decisions out of version control
+
+The decisions directory is a local working artifact, not committed to git.
+
+- Create the record file with restricted permissions — `umask 077` around
+  the write, or `chmod 600` immediately after.
+- If the working directory is part of a git repository, ensure
+  `docs/grill-decisions/` is listed in the repository's `.gitignore` —
+  append the entry if the file exists but lacks it. If the repo has no
+  `.gitignore` at all, confirm with the user before creating one. If the
+  working directory is not inside a git repository, skip this step.
+- Before declaring the session complete, verify the `.gitignore` entry is
+  present (where applicable), and report any `.gitignore` you created or
+  modified in the session summary.
 
 ## Enhanced CONTEXT.md Format
 
