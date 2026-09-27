@@ -13,7 +13,7 @@
 - Groups related automation logically
 
 **Namespace Convention**: `namespace.collection_name`
-- Example: `fieldcto_na.extractor` (using underscore, not hyphen)
+- Example: `myorg.extractor` (using underscore, not hyphen)
 - Clear organizational ownership
 
 ## Role Design Principles

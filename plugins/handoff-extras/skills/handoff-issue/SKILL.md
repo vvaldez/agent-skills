@@ -86,4 +86,4 @@ ones into the newest rather than leaving a trail.
 |-------------|--------------|
 | `/handoff-issue` alone | Upstream `/handoff` content discipline, published as a labeled issue |
 | `/handoff <focus args>` + this skill active | Focus args shape the issue body, same as upstream |
-| Re-entry skills (e.g. a quickstart briefing) | Run the handoff-issue check first; the briefing covers the stable project, the handoff covers the perishable session state |
+| Re-entry skills (e.g. a project-briefing skill) | Run the handoff-issue check first; the briefing covers the stable project, the handoff covers the perishable session state |
