@@ -5,7 +5,8 @@ description: >
   /issue-to-mr <issue-url> [more-urls...] — reads the issue and its
   references, grills only the gaps (adaptive: full /grill-with-docs for
   thin issues, one plan-confirmation for fully specified ones),
-  implements in a fresh <repo>.issue<N> worktree off origin/main, runs
+  implements in a fresh <repo>-worktrees/issue<N> worktree off
+  origin/main, runs
   the full applicable code review (dual, triple when TUI), verifies on
   a Linux test VM, then creates and pushes the MR. Use when the user
   says "implement this issue", "run the issue through to an MR",
@@ -93,10 +94,11 @@ hardcode it. (`<gitlab-host>` is exempt: it is derived at runtime.)
      implementation plan (files to touch, approach, branch name) with
      `Proceed (Recommended)` first. Do not re-litigate settled design.
 3. **Workspace.** `git fetch origin` in the repo's main checkout. Create
-   worktree `<repo>.issue<N>` on branch `<type>/<slug>` (type `feat` or
-   `fix` per the issue's nature; slug from the issue title) off freshly
-   fetched `origin/main`. Reuse an existing worktree for the same branch.
-   Never switch or stash the user's active checkout.
+   worktree `<repo>-worktrees/issue<N>` (via `wt new` when available —
+   `~/repos/agent-rules/scripts/wt`) on branch `<type>/<slug>` (type
+   `feat` or `fix` per the issue's nature; slug from the issue title)
+   off freshly fetched `origin/main`. Reuse an existing worktree for
+   the same branch. Never switch or stash the user's active checkout.
 4. **Implement**: one logical change per commit, repo commit format
    (check recent `git log`; some repos use `type(scope): summary`, most
    use `type: summary`). If the

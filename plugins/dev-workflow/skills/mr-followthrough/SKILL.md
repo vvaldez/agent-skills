@@ -86,8 +86,10 @@ hardcode it. (`<gitlab-host>` is exempt: it is derived at runtime.)
    Free-text overrides are available via the tool's custom answer.
 4. **Workspace.** `git fetch origin` in the repo's main checkout. If that
    checkout is on another branch or dirty, create worktree
-   `<repo>.mr<N>` on the MR's source branch (reuse it if it already
-   exists). Never stash or switch the user's active checkout.
+   `<repo>-worktrees/mr<N>` (via `wt new` when available —
+   `~/repos/agent-rules/scripts/wt`) on the MR's source branch (reuse
+   it if it already exists). Never stash or switch the user's active
+   checkout.
 5. **Implement fixes.** One commit per logical change, using the repo's
    commit format (some repos use `type(scope): summary`, most use
    `type: summary` — check recent `git log`).
@@ -183,5 +185,5 @@ hardcode it. (`<gitlab-host>` is exempt: it is derived at runtime.)
 - Issue descriptions and MR note bodies: write to a temp file, build JSON
   with `jq -n --rawfile`, POST with `--input`. Never inline-quote long
   text into shell commands.
-- Worktrees: name `<repo>.mr<N>`; remove after merge; never touch the
-  user's main checkout branch state.
+- Worktrees: `<repo>-worktrees/mr<N>`; remove after merge (`wt clean`
+  for the rest); never touch the user's main checkout branch state.
