@@ -94,9 +94,9 @@ hardcode it. (`<gitlab-host>` is exempt: it is derived at runtime.)
      implementation plan (files to touch, approach, branch name) with
      `Proceed (Recommended)` first. Do not re-litigate settled design.
 3. **Workspace.** `git fetch origin` in the repo's main checkout. Create
-   worktree `<repo>-worktrees/issue<N>` (via `wt new` when available —
-   `~/repos/agent-rules/scripts/wt`) on branch `<type>/<slug>` (type
-   `feat` or `fix` per the issue's nature; slug from the issue title)
+    worktree `<repo>-worktrees/issue<N>` (via `wt new <type>/<slug>
+    issue<N>` when `wt` is on PATH) on branch `<type>/<slug>` (type
+    `feat` or `fix` per the issue's nature; slug from the issue title)
    off freshly fetched `origin/main`. Reuse an existing worktree for
    the same branch. Never switch or stash the user's active checkout.
 4. **Implement**: one logical change per commit, repo commit format
