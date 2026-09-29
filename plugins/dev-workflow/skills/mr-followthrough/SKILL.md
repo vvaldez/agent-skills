@@ -86,8 +86,8 @@ hardcode it. (`<gitlab-host>` is exempt: it is derived at runtime.)
    Free-text overrides are available via the tool's custom answer.
 4. **Workspace.** `git fetch origin` in the repo's main checkout. If that
    checkout is on another branch or dirty, create worktree
-   `<repo>-worktrees/mr<N>` (via `wt new` when available —
-   `~/repos/agent-rules/scripts/wt`) on the MR's source branch (reuse
+    `<repo>-worktrees/mr<N>` (via `wt new <source-branch> mr<N>` when
+    `wt` is on PATH) on the MR's source branch (reuse
    it if it already exists). Never stash or switch the user's active
    checkout.
 5. **Implement fixes.** One commit per logical change, using the repo's
