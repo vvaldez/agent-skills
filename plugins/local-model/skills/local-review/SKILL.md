@@ -7,9 +7,10 @@ description: >
   of candidate defects comes back. Use when the user says /local-review, "local review",
   "quick review", "cheap review", or wants a diff looked at without spending a full review
   on it. Its findings are candidates to check, never verdicts, and a clean result is weak
-  evidence rather than an all-clear. REQUIRES the separate localllm tooling on this machine
-  plus a running model worker; Windows and PowerShell 5.1 only. Without those it cannot run
-  at all — say so and stop.
+  evidence rather than an all-clear. Two stacks, selected by an OS check up front:
+  Windows (PowerShell 5.1 + the separate localllm tooling) or macOS (Ollama + a
+  read-only opencode reviewer agent). Without that OS's stack it cannot run at all —
+  say so and stop.
 ---
 
 # Local Review
@@ -18,11 +19,22 @@ Run a locally-hosted model over a diff. Get back a short list of candidate
 defects. The bulk text never enters this context — that asymmetry is the entire
 reason the tool exists.
 
-This skill is a **pointer**, not an implementation. The script owns the gate, the
-encoding step, the preflight, and the warning text. Do not reimplement any of it
-here.
+This skill is a **pointer**, not an implementation. Each stack's script owns
+the gate, the encoding step, the preflight, and the warning text. Do not
+reimplement any of it here.
 
-## Before anything: can this run at all?
+## First: OS check, then that stack's preflight
+
+`uname -s` → `Darwin` = **macOS stack**; `MINGW*` / `MSYS*` / `CYGWIN*` =
+**Windows stack** (under Windows PowerShell 5.1 there is no `uname` —
+`$env:OS` is `Windows_NT`). Any other OS: say it is unsupported and stop.
+
+Then run the preflight for that stack only. If its preflight fails, **say so
+plainly and stop.** Do not read the diff yourself and call it a local review —
+that spends the context this skill exists to save, under a label saying it
+didn't.
+
+### Windows preflight
 
 `local-review` calls `review-diff.ps1` from the **localllm** repo, which is
 **not bundled with this plugin** and is not publicly available. It also needs a
@@ -31,14 +43,31 @@ model already loaded on a local worker, Windows with PowerShell 5.1, and
 script, and a missing `node` surfaces as exit 3, which looks like a model fault
 and is not.
 
-If any of that is missing, **say so plainly and stop.** Do not read the diff
-yourself and call it a local review — that spends the context this skill exists
-to save, under a label saying it didn't.
+### macOS preflight
+
+The macOS stack calls a `run-reviewer` script from a local agent-tools
+checkout — **not bundled with this plugin**. Its path is baked into this
+deployed copy (rendered from a gitignored local config at deploy time);
+if the path below does not exist as an executable file, say so and stop.
+It also needs, on this machine:
+
+1. `opencode` and `python3` on PATH.
+2. A read-only `local-reviewer` opencode agent, created once via the
+   agent-tools `local-agent` SETUP (it is a machine-level agent, not part of
+   this plugin).
+3. The chosen model registered in `~/.config/opencode/opencode.jsonc` — the
+   script checks and prints the fix (`local-ai-setup --model <tag>` or add it
+   to the provider section).
+4. For a bare Ollama tag, the model pulled locally (`ollama list`).
 
 ## Run it
 
-One self-contained block, and **set the tool timeout to 600000** when you run
-it. Do not split the resolution from the invocation: PowerShell tool calls do
+Set the tool timeout to **600000** for either stack, and do not split the
+resolution from the invocation.
+
+### Windows
+
+One self-contained PowerShell block. Do not split it: PowerShell tool calls do
 not carry variables between invocations, so a second call would run `& $null`
 and fail with an opaque parser error.
 
@@ -84,7 +113,35 @@ compact list on stdout carries everything the JSON does, so nothing is lost —
 but it does mean the `Full JSON:` path the script prints is already gone by
 the time you read it. Report from the printed list.
 
-## Scope selectors
+### macOS
+
+```bash
+<local-review-script> "<target-dir>" "<base-ref>" [model]
+```
+
+- `<target-dir>`: the git checkout or worktree holding the changes. The
+  reviewer agent gets read access to this directory (opencode `--dir`
+  sandbox), so it can open the files it cites — not just the diff.
+- `<base-ref>`: what is being compared against — `main`, `HEAD~1`, a tag.
+  The script diffs `base...HEAD` (three-dot, from the merge base), so it does
+  not pull in the inverse of newer base commits the way two-dot does.
+- `model`: omit for the default, `deepseek-r1:8b` (a public Ollama reasoning
+  model). A bare tag means `ollama/<tag>`; a full `provider/model` ID is used
+  as-is.
+
+Scope caveat, different from Windows: this reviews **committed** changes
+against the base. Uncommitted work is not in `HEAD` — if the user wants
+unstaged changes reviewed, say so and either make a WIP commit with them
+(first confirm with the user) or use the Windows-style manual diff path with
+their explicit OK.
+
+The script prints `=== Verdict (<model>) ===` followed by the verdict text,
+and ends with `Full results: <dir>` — a per-run results dir holding
+`verdict.md`, the raw event stream, a sanitized session export, and token
+usage in `meta.json`. Report from the printed verdict; the results dir is for
+the user's inspection, not for relaying.
+
+## Scope selectors (Windows)
 
 Pick exactly one. **Read this table carefully — the default is narrower than it
 looks.**
@@ -110,24 +167,33 @@ therefore includes the inverse of main's newer commits — changes you did not
 write — and the model will report defects in them. Prefer your own branch-point,
 or narrow with `-Path src/auth.ts,src/session.ts`.
 
+On macOS the equivalent narrowing is choosing the base ref (and the script's
+three-dot diff already avoids the two-dot trap), or reviewing a narrower
+branch-point.
+
 ## How long it takes
 
-**Seconds to minutes, and the clean answer is the expensive one.** Observed: 2s
-on a small prose diff, 9s on an eight-line file, 99s on 700 lines. The tooling's
-own notes record a clean 10,000-character diff costing 4.4 minutes, because
-"nothing is wrong" takes more generation than "here is the bug."
+**Seconds to minutes, and the clean answer is the expensive one.** Observed on
+Windows: 2s on a small prose diff, 9s on an eight-line file, 99s on 700 lines.
+The tooling's own notes record a clean 10,000-character diff costing 4.4
+minutes, because "nothing is wrong" takes more generation than "here is the
+bug." On macOS the default is a reasoning model — expect the multi-minute end
+of that range for anything but a small diff, which is why the timeout is
+raised on both stacks.
 
-This is why the tool timeout must be raised to 600000, and why narrowing is not
-just politeness: two sessions reviewing 700-line diffs serialize on the single
-worker, so the second waits for both.
+This is why narrowing is not just politeness: concurrent reviews serialize on
+the local GPU/worker (one loaded model on Windows; one Ollama slot per loaded
+model on macOS), so the second waits for both.
 
-Narrow with `-Path` before reaching for a whole branch. The commit hook refuses
-anything over 60,000 characters; that is a sane manual ceiling too. The script
-warns above roughly 100,000 tokens of diff and then **proceeds anyway** — if you
-see that warning, expect truncation and narrow the scope instead of trusting the
-result.
+Narrow the scope before reaching for a whole branch. The Windows commit hook
+refuses anything over 60,000 characters; that is a sane manual ceiling too.
+`review-diff.ps1` warns above roughly 100,000 tokens of diff and then
+**proceeds anyway** — if you see that warning, expect truncation and narrow the
+scope instead of trusting the result.
 
 ## Read the exit code before the output
+
+### Windows
 
 | Code | Meaning | Do |
 |------|---------|-----|
@@ -155,6 +221,14 @@ result file, and it is not a GPU problem.
 **Exit 4 is the one to be careful with.** It means the model received nothing.
 Reporting "no findings" there is a clean bill of health on unreviewed code.
 
+### macOS
+
+| Outcome | Meaning | Do |
+|---------|---------|-----|
+| exit `0` | it ran | report the verdict under the precision caveat below |
+| exit `1` with an `Error:` line | usage/preflight: bad target dir, bad ref, `opencode`/`python3` missing, model not registered, or **empty diff** | read the printed line; an empty diff means nothing was sent — never report "no findings", check the base ref and that the changes are committed |
+| other non-zero | the opencode run itself failed | read `run.log` in the printed results dir before reporting; it is an execution fault, not a model verdict |
+
 ## Then check every finding, and distrust a clean result
 
 Measured precision on real diffs is about **50%**. It has caught a genuine bug
@@ -174,6 +248,8 @@ four real defects, one a blocker both found separately. Report a clean result as
 
 ## Model selection
 
+### Windows
+
 Omit `-Model` and the script resolves the reviewer itself — the first model the
 worker reports — and prints `reviewing with <id>` whenever that choice is not
 obvious. Read that line. It is not decoration: the preflight line lists *every*
@@ -192,12 +268,24 @@ separate operation (`worker-start.ps1 -ModelKey <key>` in the localllm repo) tha
 unloads whatever is running, so do not do it while another session may be using
 the worker.
 
+### macOS
+
+The default is `deepseek-r1:8b` unless the user names a model. Anything passed
+must already be registered in `opencode.jsonc` — the script's preflight rejects
+unregistered specs and prints the fix. `ollama list` shows what is actually on
+the machine; a model that is pulled but unregistered fails the preflight, and
+the fix is `local-ai-setup --model <tag>` (or adding it to the provider
+section). Ollama loads a model on demand rather than holding one resident slot,
+but concurrent reviews of large diffs still serialize on the GPU — do not start
+a second run while one is in flight.
+
 ## What this is not
 
 - **Not a full code review.** It is a first pass. Run it before a thorough
   review, not instead of one.
 - **Not made redundant by the commit hook.** If the hook is wired up it *may*
-  already cover a commit — but it sees only **staged** changes, skips anything
-  over 60,000 characters, and has been observed not firing at all. If the user
-  asks for a review before committing, run this and say you did.
+  already cover a commit — but on Windows it sees only **staged** changes,
+  skips anything over 60,000 characters, and has been observed not firing at
+  all. If the user asks for a review before committing, run this and say you
+  did.
 - **Not for judgement.** No planning, no architecture, no "should we do this."
