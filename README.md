@@ -11,6 +11,8 @@ Developer workflow and automation skills for AI coding agents. Built for daily u
 | `/tidy` | Gentle git housekeeping — fetch, prune, report branches, auto-delete merged, confirm unmerged |
 | `/ship` | Unified MR/PR workflow — detect state, branch, commit, push, create merge/pull request |
 | `/stats` | Session statistics dashboard — slash commands, tool calls, MRs, commits, doc edits |
+| `/issue-to-mr` | Take a GitLab issue from triage to pushed MR — gap-grill, worktree implementation, full code review, Linux test VM verification, MR push |
+| `/mr-followthrough` | Drive a GitLab MR from reviewer feedback to merged — triage findings, fix, delta re-review, pipeline, gated merge |
 
 ### Automation
 
@@ -120,6 +122,8 @@ Skills follow the [Agent Skills](https://agentskills.io) open standard. Copy the
 - **`/diagram`**: Puppeteer for auto-PNG (`npx -y @mermaid-js/mermaid-cli` installs it)
 - **`/grill-harness`**: Optional: `~/.claude/agents/` with expert personas (e.g., from [agency-agents](https://github.com/msitarzewski/agency-agents)). Works without agents but panel feature is skipped.
 - **`/handoff-issue`**: `gh` (GitHub CLI, authenticated). Without it, falls back to upstream `/handoff` markdown behavior.
+- **`/issue-to-mr`**: `git`, a GitLab CLI wrapper with vault-backed auth, an unlocked Bitwarden vault, `shellcheck`, a pipeline-polling helper, a reachable Linux test VM, a code-review setup with reviewer subagents, and the `/grill-with-docs` skill (optional — degrades to inline gap-grilling when absent). Team-specific values (host, CLI, VM, reviewer) come from a gitignored `CLAUDE.local.md` — the shipped skill contains no team hostnames, accounts, or handles.
+- **`/mr-followthrough`**: `git`, a GitLab CLI wrapper with vault-backed auth, an unlocked Bitwarden vault, `shellcheck`, a pipeline-polling helper, and a code-review setup with reviewer subagents. Same `CLAUDE.local.md` convention as `/issue-to-mr`.
 
 ## License
 
