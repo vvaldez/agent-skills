@@ -13,6 +13,7 @@ Developer workflow and automation skills for AI coding agents. Built for daily u
 | `/stats` | Session statistics dashboard — slash commands, tool calls, MRs, commits, doc edits |
 | `/issue-to-mr` | Take a GitLab issue from triage to pushed MR — gap-grill, worktree implementation, full code review, Linux test VM verification, MR push |
 | `/mr-followthrough` | Drive a GitLab MR from reviewer feedback to merged — triage findings, fix, delta re-review, pipeline, gated merge |
+| `/drain` | Drain the session's residue into its sinks — propose new lessons, flag undrained issues, report git state (defers cleanup to `/tidy` and `wt clean`) |
 
 ### Automation
 
