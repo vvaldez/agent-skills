@@ -41,11 +41,23 @@ Rules:
   `PAPERCLIP_RUN_ID` is set (Paperclip sets it on every agent run). A
   human hand-running this skill has no such variable and gets NO
   footer — never label a human-made MR as agent-generated.
+- **Append the value, not the label.** The footer is the text AFTER
+  `ATTRIBUTION_FOOTER: ` on the marked line — never the `ATTRIBUTION_
+  FOOTER:` prefix. Append that value verbatim, exactly as written in the
+  block; never a remembered or paraphrased version.
 - **Strip-then-append (idempotent).** Before appending, delete any
-  existing footer line (a line containing `Generated with
-  [Paperclip]`) from the description, then append the current footer
-  on its own final line. A re-run or retry must produce the same
-  description — never a double footer.
+  line that is a footer line — i.e. contains the anchor substring
+  `Generated with [Paperclip]` AND the models.corp link. Do not touch
+  any other line (a code block or prose that merely says "generated"
+  is left alone). Then append a blank line + the footer value as the
+  final line. A re-run or retry must produce the same description —
+  never a double footer. If a footer line STILL remains after
+  stripping, do NOT append — proceed without a footer and note it in
+  the step-9 report.
+- **Keep the anchor stable.** If you edit the footer text, keep the
+  substring `Generated with [Paperclip]` in it — that is how future
+  runs recognize and strip an old footer. If you reword it, update the
+  strip anchor in this section in the same edit.
 - **Best-effort.** If any part of this step errors, proceed to create
   the MR without the footer. The footer must never block MR creation.
 
@@ -179,15 +191,24 @@ hardcode it. (`<gitlab-host>` is exempt: it is derived at runtime.)
        VM results), follow-ups for other repos
      - reviewer `<reviewer>` (no @), assignee the current user,
        `--remove-source-branch`
-    - Build the description via a temp file + `jq -n --rawfile` +
-      `--input` (never inline-quoted).
-    - **Attribution footer** (per the Attribution footer section above):
-      when `PAPERCLIP_RUN_ID` is set, strip any existing
-      `Generated with [Paperclip]` line from the description temp file,
-      then append the footer line (a blank line, then the footer as the
-      final line). Best-effort — on any error, create the MR without
-      the footer. Human runs (no `PAPERCLIP_RUN_ID`) get no footer.
-    - `<pipeline-check> --repo <group>/<repo> --wait` from the worktree.
+   - Build the description via a temp file + `jq -n --rawfile` +
+     `--input` (never inline-quoted).
+   - **Attribution footer** (per the Attribution footer section above):
+     when `PAPERCLIP_RUN_ID` is set, strip any footer line (contains
+     `Generated with [Paperclip]` + the models.corp link), then append
+     the footer value (text after `ATTRIBUTION_FOOTER:`, not the label)
+     as a blank line + final line. Best-effort — on any error, create
+     the MR without the footer. Human runs (no `PAPERCLIP_RUN_ID`) get
+     no footer. Record the outcome (appended / not applicable /
+     skipped + reason) for the step-9 report.
+   - **Ship-and-stop.** When the MR is posted, pipeline green, review
+     passed, and reviewer/assignee set, your work is COMPLETE. Post the
+     shipped note, then leave the task `in_review` (open, no live run)
+     and END your run. Do NOT post an "approve and merge?" /
+     "request changes?" interaction — a self-authored MR is reviewed
+     and merged by the human in GitLab, never by you. The board closes
+     the task when the MR merges; do not mark it done yourself.
+   - `<pipeline-check> --repo <group>/<repo> --wait` from the worktree.
    - Keep the worktree (mr-followthrough will use it for review
      feedback); note its path in the report.
 9. **Report.** Per issue: decisions (grill/confirm), commits, review
