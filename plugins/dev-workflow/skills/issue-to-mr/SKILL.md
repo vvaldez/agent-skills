@@ -23,6 +23,32 @@ issue→MR journey: read → gap-grill → implement in a worktree → full
 review → VM verification → MR push. Ends at the pushed MR — taking it
 from review feedback to merged is /mr-followthrough's job.
 
+## Attribution footer (single source of truth)
+
+Append exactly ONE attribution footer line to the MR description when —
+and only when — this skill runs inside a Paperclip agent run. The line
+between the markers below is the single place to edit the footer text:
+change that line, re-run the deploy, and every agent picks it up. Do
+not change the marker lines.
+
+<!-- ATTRIBUTION:BEGIN — edit the footer text on the line below only -->
+ATTRIBUTION_FOOTER: 🤖 Generated with [Paperclip](https://github.com/paperclipai/paperclip) using [models.corp](https://developer.models.corp.redhat.com/)
+<!-- ATTRIBUTION:END -->
+
+Rules:
+
+- **Gate on Paperclip.** Append only when the environment variable
+  `PAPERCLIP_RUN_ID` is set (Paperclip sets it on every agent run). A
+  human hand-running this skill has no such variable and gets NO
+  footer — never label a human-made MR as agent-generated.
+- **Strip-then-append (idempotent).** Before appending, delete any
+  existing footer line (a line containing `Generated with
+  [Paperclip]`) from the description, then append the current footer
+  on its own final line. A re-run or retry must produce the same
+  description — never a double footer.
+- **Best-effort.** If any part of this step errors, proceed to create
+  the MR without the footer. The footer must never block MR creation.
+
 ## Local config
 
 Team-specific values resolve from `CLAUDE.local.md` (gitignored) in the
@@ -153,9 +179,15 @@ hardcode it. (`<gitlab-host>` is exempt: it is derived at runtime.)
        VM results), follow-ups for other repos
      - reviewer `<reviewer>` (no @), assignee the current user,
        `--remove-source-branch`
-   - Build the description via a temp file + `jq -n --rawfile` +
-     `--input` (never inline-quoted).
-   - `<pipeline-check> --repo <group>/<repo> --wait` from the worktree.
+    - Build the description via a temp file + `jq -n --rawfile` +
+      `--input` (never inline-quoted).
+    - **Attribution footer** (per the Attribution footer section above):
+      when `PAPERCLIP_RUN_ID` is set, strip any existing
+      `Generated with [Paperclip]` line from the description temp file,
+      then append the footer line (a blank line, then the footer as the
+      final line). Best-effort — on any error, create the MR without
+      the footer. Human runs (no `PAPERCLIP_RUN_ID`) get no footer.
+    - `<pipeline-check> --repo <group>/<repo> --wait` from the worktree.
    - Keep the worktree (mr-followthrough will use it for review
      feedback); note its path in the report.
 9. **Report.** Per issue: decisions (grill/confirm), commits, review
