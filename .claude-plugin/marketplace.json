@@ -26,12 +26,6 @@
       "category": "productivity"
     },
     {
-      "name": "grilling-extras",
-      "description": "DEPRECATED: grill-harness has moved to skill-extras. Install skill-extras@vvaldez-agent-skills instead.",
-      "source": "./plugins/grilling-extras",
-      "category": "productivity"
-    },
-    {
       "name": "handoff-extras",
       "description": "Session handoffs as GitHub issues: extends /handoff to publish a labeled, close-when-consumed issue instead of a markdown file, with dedup against existing tracked work (/handoff-issue).",
       "source": "./plugins/handoff-extras",

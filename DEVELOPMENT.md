@@ -9,13 +9,15 @@ agent-skills/
 ├── .claude-plugin/
 │   └── marketplace.json          # Plugin manifest for Claude Code
 ├── decisions/                    # Architecture Decision Records
-│   └── ADR-001-skill-extras-plugin.md
+│   ├── ADR-001-skill-extras-plugin.md
+│   └── ADR-002-parameterized-workflow-skills.md
 ├── plugins/
 │   ├── dev-workflow/             # Git workflow tools (tidy, ship, stats)
 │   ├── automation/               # Ansible patterns (ansibleize)
 │   ├── skill-extras/             # Upstream skill compositions (grill-harness, overrides)
 │   ├── diagrams/                 # Red Hat branded diagram generation
-│   └── handoff-extras/           # Session handoffs as GitHub issues
+│   ├── handoff-extras/           # Session handoffs as GitHub issues
+│   └── local-model/              # Local inference review (local-review)
 ├── README.md
 ├── DEVELOPMENT.md
 └── LICENSE
@@ -76,9 +78,13 @@ non-obvious without context.
 1. Create the skill directory under the appropriate plugin:
    - `plugins/dev-workflow/skills/<skill-name>/` — git workflows, session tools
    - `plugins/automation/skills/<skill-name>/` — infrastructure, Ansible, scripting
-2. Write `SKILL.md` with YAML frontmatter (`name`, `description`), plus
-   `metadata:\n  opencode/slash: "true"` so the skill is exposed as a
-   `/name` slash command in the OpenCode TUI.
+2. Write `SKILL.md` with YAML frontmatter (`name`, `description`), plus a
+   `metadata` block so the skill is exposed as a `/name` slash command in
+   the OpenCode TUI:
+   ```yaml
+   metadata:
+     opencode/slash: "true"
+   ```
 3. Add bundled resources if needed (`scripts/`, `references/`, `assets/`).
 4. Copy to `~/.claude/skills/` for local testing.
 5. Once stable, delete local copy, commit, push, and update:
