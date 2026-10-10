@@ -11,6 +11,8 @@ description: >
   a Linux test VM, then creates and pushes the MR. Use when the user
   says "implement this issue", "run the issue through to an MR",
   "issue to MR", or pastes issue/work-item URLs to implement.
+metadata:
+  opencode/slash: "true"
 ---
 
 # Issue to MR

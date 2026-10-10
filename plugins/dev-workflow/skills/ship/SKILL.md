@@ -6,6 +6,8 @@ description: >
   request (gh) in one command. Auto-detects platform from remote URL. Use when user says
   /ship, "create MR", "create PR", "ship this", "merge request", "pull request",
   "push and create MR/PR", "wrap up", or is done with changes and wants to get them into review.
+metadata:
+  opencode/slash: "true"
 ---
 
 # Ship

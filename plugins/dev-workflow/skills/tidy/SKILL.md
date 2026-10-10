@@ -5,6 +5,8 @@ description: >
   auto-deletes merged branches, and confirms before touching unmerged ones. Non-destructive
   by default. Use when user says /tidy, "clean up git", "check branches", "housekeeping",
   "are my branches clean", or after merging an MR/PR and wanting to sync local state.
+metadata:
+  opencode/slash: "true"
 ---
 
 # Tidy
