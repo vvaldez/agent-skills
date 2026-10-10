@@ -5,6 +5,8 @@ description: >
   disclaimers from MR comments and review output. Activates alongside /code-review
   automatically. Use when user says /code-review, "code review", "review MR",
   "review PR", "review this diff", "review merge request", or any code review invocation.
+metadata:
+  opencode/slash: "true"
 ---
 
 # Code Review Override

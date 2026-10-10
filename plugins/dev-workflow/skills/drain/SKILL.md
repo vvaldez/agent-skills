@@ -8,6 +8,8 @@ description: >
   actual git cleanup to /tidy and wt clean. Use when the user says /drain, "drain the
   context", "is anything left in context", "what haven't we captured yet", "did we file
   the lessons", or wraps up a session and wants to make sure nothing durable was lost.
+metadata:
+  opencode/slash: "true"
 ---
 
 # Drain

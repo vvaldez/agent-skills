@@ -6,6 +6,8 @@ description: >
   alongside /triage automatically. Use when user says /triage, "triage",
   "triage issues", "triage this issue", "move to ready-for-agent",
   or any triage state transition.
+metadata:
+  opencode/slash: "true"
 ---
 
 # Triage Override

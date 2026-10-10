@@ -8,6 +8,8 @@ description: >
   upstream markdown-to-temp-dir behavior when no issue tracker is available.
   Use when user says /handoff-issue, "handoff to an issue", or asks to hand off
   a session in a project that tracks work in GitHub issues.
+metadata:
+  opencode/slash: "true"
 ---
 
 # Handoff Issue

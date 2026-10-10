@@ -8,6 +8,8 @@ description: >
   Use when user says /grill-harness, /grilling, /grill-with-docs, /grill-me,
   "grill with experts", "adversarial review", "challenge this with a panel",
   or wants structured decision tables from grilling.
+metadata:
+  opencode/slash: "true"
 ---
 
 # Grill Harness

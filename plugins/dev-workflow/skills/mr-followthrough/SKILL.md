@@ -10,6 +10,8 @@ description: >
   says "follow through on this MR", "address the review comments",
   "fix the track and merge", pastes one or more MR URLs to clean up,
   or says "do the same for <mr-url>".
+metadata:
+  opencode/slash: "true"
 ---
 
 # MR Followthrough
