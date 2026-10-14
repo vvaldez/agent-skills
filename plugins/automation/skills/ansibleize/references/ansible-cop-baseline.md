@@ -305,6 +305,7 @@ Collection PRs require a changelog fragment in `changelogs/fragments/`:
 ---
 minor_changes:
   - Add my_feature role to do the thing.
+...
 ```
 
 Sections: `major_changes`, `minor_changes`, `breaking_changes`, `bugfixes`,
