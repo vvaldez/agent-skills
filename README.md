@@ -27,11 +27,13 @@ Developer workflow and automation skills for AI coding agents. Built for daily u
 |-------|-------------|
 | `/diagram` | Red Hat branded process flow diagrams — self-contained HTML with auto-PNG export. Nodes, arrows, decisions, dividers, watermarks. |
 
-### Grilling Extras
+### Skill Extras
 
 | Skill | Description |
 |-------|-------------|
 | `/grill-harness` | Adversarial grilling harness — assembles expert panel from `~/.claude/agents/`, adds structured decision tables, enhanced CONTEXT.md format. Extends upstream `/grilling`. |
+| `/triage-override` | Policy override for upstream `/triage` — suppresses the AI-generated disclaimer prepended to issue comments. Activates alongside `/triage` automatically. |
+| `/code-review-override` | Policy override for upstream `/code-review` — suppresses AI-generated disclaimers from MR comments and review output. Activates alongside `/code-review` automatically. |
 
 ### Handoff Extras
 
@@ -56,7 +58,7 @@ claude plugins marketplace add vvaldez/agent-skills
 claude plugins install dev-workflow@vvaldez-agent-skills
 claude plugins install automation@vvaldez-agent-skills
 claude plugins install diagrams@vvaldez-agent-skills
-claude plugins install grilling-extras@vvaldez-agent-skills
+claude plugins install skill-extras@vvaldez-agent-skills
 claude plugins install handoff-extras@vvaldez-agent-skills
 claude plugins install local-model@vvaldez-agent-skills
 ```
@@ -68,7 +70,7 @@ Or from inside a Claude Code session:
 /plugin install dev-workflow@vvaldez-agent-skills
 /plugin install automation@vvaldez-agent-skills
 /plugin install diagrams@vvaldez-agent-skills
-/plugin install grilling-extras@vvaldez-agent-skills
+/plugin install skill-extras@vvaldez-agent-skills
 /plugin install handoff-extras@vvaldez-agent-skills
 /plugin install local-model@vvaldez-agent-skills
 /reload-plugins
@@ -80,7 +82,7 @@ To update after new releases (CLI only — `/plugin update` is not available in-
 claude plugins update dev-workflow@vvaldez-agent-skills
 claude plugins update automation@vvaldez-agent-skills
 claude plugins update diagrams@vvaldez-agent-skills
-claude plugins update grilling-extras@vvaldez-agent-skills
+claude plugins update skill-extras@vvaldez-agent-skills
 claude plugins update handoff-extras@vvaldez-agent-skills
 claude plugins update local-model@vvaldez-agent-skills
 ```

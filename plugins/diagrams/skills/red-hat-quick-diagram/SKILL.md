@@ -5,6 +5,8 @@ description: >
   Red Hat branded: Display/Text/Mono fonts, RHDS color palette, dark-mode aesthetic.
   Use when user says /diagram, /quick-diagram, "create a diagram", "draw a flowchart",
   "process flow", "workflow diagram", "visualize this process", or "diagram this workflow".
+metadata:
+  opencode/slash: "true"
 ---
 
 # Red Hat Quick Diagram

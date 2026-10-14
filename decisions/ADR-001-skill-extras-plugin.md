@@ -42,6 +42,12 @@ the old plugin keeps an active deprecation stub SKILL.md that:
 1. Matches the same trigger phrases (so users see the message, not silence)
 2. Instructs users to install `skill-extras` and uninstall the old plugin
 
+> **Amended (2026-10):** grilling-extras was removed entirely rather than kept as a
+> stub (https://github.com/vvaldez/agent-skills/pull/33). Its skill had fully moved
+> to `skill-extras`, and a stub under the same name shadows the real copy in
+> harnesses that dedupe by name. Do not re-add `grilling-extras` under the same
+> name; use a fresh name if a new plugin is ever needed.
+
 ## Consequences
 
 - **One install:** Users install `skill-extras@vvaldez-agent-skills` to get all
@@ -50,6 +56,7 @@ the old plugin keeps an active deprecation stub SKILL.md that:
   upstream skill belongs here, not in a new plugin.
 - **grilling-extras is deprecated:** Its only skill (`grill-harness`) moved to
   `skill-extras`. The plugin remains with a deprecation stub for existing installs.
+  (Removed entirely 2026-10 — see the Deprecation pattern amendment above.)
 - **Plugin naming clarity:** Plugin names reflect content grouping, not composition
   mechanism. A plugin named `skill-extras` can hold both enhancements and overrides
   without semantic mismatch.

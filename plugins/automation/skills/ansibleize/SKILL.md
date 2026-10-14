@@ -9,6 +9,8 @@ description: >
   "check Ansible patterns", "ansible best practices review", or wants to improve
   Ansible code quality. Also trigger when reviewing Ansible PRs/MRs or onboarding
   to an existing Ansible codebase.
+metadata:
+  opencode/slash: "true"
 ---
 
 # Ansibleize

@@ -7,6 +7,8 @@ description: >
   "usage report",
   or wants to review their session activity. Also use when the user asks about their habits,
   patterns, or productivity in Claude Code sessions.
+metadata:
+  opencode/slash: "true"
 ---
 
 # Stats

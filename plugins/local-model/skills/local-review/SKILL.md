@@ -11,6 +11,8 @@ description: >
   Windows (PowerShell 5.1 + the separate localllm tooling) or macOS (Ollama + a
   read-only opencode reviewer agent). Without that OS's stack it cannot run at all —
   say so and stop.
+metadata:
+  opencode/slash: "true"
 ---
 
 # Local Review
