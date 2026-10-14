@@ -296,6 +296,59 @@ my_namespace/my_collection/
 └── tests/
 ```
 
+### Changelog Fragments (antsibull)
+
+Collection PRs require a changelog fragment in `changelogs/fragments/`:
+
+```yaml
+# changelogs/fragments/my_feature.yml
+---
+minor_changes:
+  - Add my_feature role to do the thing.
+...
+```
+
+Sections: `major_changes`, `minor_changes`, `breaking_changes`, `bugfixes`,
+`deprecated_features`, `removed_features`, `security_fixes`, `known_issues`.
+ansible-lint lints fragments as YAML (and ships `schema[changelog]`) —
+`antsibull-changelog lint` is the dedicated fragment validator (run it in
+tox/CI).
+
+### docsible README Blocks
+
+Collection READMEs use docsible with two blocks: hand-written content inside
+`<!-- STATIC CONTENT START/END -->` and generated content inside
+`<!-- DOCSIBLE START/END -->` (argument specs, defaults, task flow graphs).
+docsible regenerates the generated block in pre-commit — hand-edits inside the
+DOCSIBLE block get overwritten; write human content in the STATIC block only.
+
+### .ansible-lint Config That Enforces the Patterns
+
+Collections should carry an `.ansible-lint` that encodes the conventions:
+
+```yaml
+---
+profile: production
+
+loop_var_prefix: ^(__|{role}_)
+var_naming_pattern: ^[a-z_][a-z0-9_]*$
+task_name_prefix: "{stem} | "
+
+enable_list:
+  - args
+  - empty-string-compare
+  - no-log-password
+  - name[prefix]
+  - yaml
+
+skip_list:
+  - fqcn[canonical]  # when redhat.openshift.k8s / kubernetes.core.k8s_info are used
+```
+
+`task_name_prefix: "{stem} | "` requires task names in included task files to start
+with the file stem (see the task name prefix convention in the generic patterns
+reference). `loop_var_prefix` enforces `__`-prefixed or role-prefixed loop vars.
+
 ## Common Anti-Patterns to Avoid
 
 **Don't**: Global variable names

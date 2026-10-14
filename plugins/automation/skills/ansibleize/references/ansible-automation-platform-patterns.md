@@ -160,3 +160,95 @@ Apply `no_log` to tasks that handle:
 - Any `set_fact` that stores credentials (e.g., `__govc_env`)
 
 Do NOT apply `no_log` to tasks that only reference non-secret vars (datacenter names, VM names, file paths).
+
+---
+
+## AAP Credential Injection Fallback Chain
+
+**Pattern**: Connection and credential variables cascade from AAP-injected
+environment variables to inventory variables with an empty-string terminal, so the
+same role runs identically from an AAP job template and from a controller.
+
+Consumer-facing inventory vars (`openshift_host`, `openshift_api_key`, ...) are
+deliberately unnamespaced — a shared inventory interface across roles, exempt
+from role-prefix naming. Role-internal vars still use the `<role>_` and
+`__<role>_` prefixes.
+
+### Why?
+
+1. **AAP job templates**: Credential types inject env vars (`K8S_AUTH_*` from the
+   target credential, `VMWARE_*` from the source credential, `AAP_*` from the
+   controller credential) — the role reads them with `lookup('env', ...)`
+2. **Controller runs**: The same variables resolve from inventory when the role runs
+   from a laptop/controller with no AAP injection
+3. **One interface**: Consumers set inventory vars once; AAP overrides at runtime
+4. **Vault-encrypt inventory credentials**: on non-AAP runs the inventory
+   terminal holds the real credential — credential-bearing inventory vars must
+   be vault-encrypted (`!vault`); plaintext credential values in inventory are
+   a violation
+
+### Standard Pattern
+
+```yaml
+# defaults/main.yml
+my_role_openshift_host: >-
+  {{
+    lookup('env', 'K8S_AUTH_HOST')
+    | default(openshift_host | default('', true), true)
+  }}
+
+my_role_openshift_api_key: >-
+  {{
+    lookup('env', 'K8S_AUTH_API_KEY')
+    | default(openshift_api_key | default('', true), true)
+  }}
+
+# Bool-typed options need a | bool cast at the chain end (see the generic
+# patterns reference): a raw env string must never reach a bool-typed
+# argument-spec option.
+my_role_openshift_verify_ssl: "{{ (lookup('env', 'K8S_AUTH_VERIFY_SSL')
+  | default(openshift_verify_ssl | default(true), true)) | bool }}"
+```
+
+On non-AAP runs the inventory terminal holds the real credential — store
+credential-bearing inventory vars vault-encrypted:
+
+```yaml
+# inventory/host_vars/<controller>.yml
+openshift_api_key: !vault |
+  $ANSIBLE_VAULT;1.2;AES256;
+  <encrypted payload>
+```
+
+### Env Var Families
+
+| Credential type | Injects | Resolves |
+|-----------------|---------|----------|
+| OpenShift target credential | `K8S_AUTH_HOST`, `K8S_AUTH_API_KEY`, `K8S_AUTH_VERIFY_SSL` | Cluster connection |
+| vCenter source credential | `VMWARE_HOST`, `VMWARE_USER`, `VMWARE_PASSWORD`, `VMWARE_VALIDATE_CERTS` | Hypervisor connection |
+| AAP controller credential | `AAP_HOSTNAME`, `AAP_USERNAME`, `AAP_PASSWORD`, `AAP_TOKEN` | Controller API |
+
+### Empty-String Terminal Is the Exception, Not a Violation
+
+The generic rule "no empty string defaults for required credentials" does NOT apply
+to this pattern: the empty string is the fallback-chain terminal for a variable that
+is optional as a role variable (the env var provides it under AAP). The contract is
+enforced by an entry assert instead:
+
+```yaml
+# tasks/pre_validate.yml
+- name: pre_validate | Validate required connection variables
+  ansible.builtin.assert:
+    that:
+      - my_role_openshift_host | length > 0
+      - my_role_openshift_api_key | length > 0
+    fail_msg: >-
+      OpenShift connection is required. Set openshift_host and openshift_api_key
+      in the inventory (vault-encrypted — plaintext credential values in
+      inventory are a violation; or run from AAP where the target credential
+      injects K8S_AUTH_HOST and K8S_AUTH_API_KEY).
+```
+
+Credentials that are required as plain role variables (no env injection) must NOT
+use empty-string defaults — give them no default at all and let the argument spec
+or an assert enforce them.

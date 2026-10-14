@@ -1272,6 +1272,82 @@ Always include **both** `fail_msg` and `success_msg` — be explicit about what 
     success_msg: "Platform validated: {{ component_platform }}"
 ```
 
+## Run All Checks, Report, Then Fail (Validation Roles)
+
+**Pattern**: Validation and preflight roles run EVERY check, collect results, display
+a summary, and fail the play at the end if anything failed. This complements the
+assert-over-fail pattern (fail-fast), which is right for operational roles where the
+first missing prerequisite stops the run.
+
+### Why?
+
+1. **One run surfaces everything wrong** — an expired token never hides an operator
+   gap behind it
+2. **Matches the checklist metaphor** — validation documents read as a table of
+   checks
+3. **Results are data** — each check records a structured result the report can
+   format
+
+### Standard Pattern
+
+Each check registers its probe with `failed_when: false` and records a result fact:
+
+```yaml
+# tasks/validate_mtv.yml
+- name: validate_mtv | Query the MTV ClusterServiceVersion
+  kubernetes.core.k8s_info:
+    host: "{{ my_role_openshift_host }}"
+    api_key: "{{ my_role_openshift_api_key }}"
+    api_version: operators.coreos.com/v1alpha1
+    kind: ClusterServiceVersion
+    namespace: "{{ my_role_mtv_namespace }}"
+  register: __my_role_mtv_csv
+  failed_when: false
+  no_log: "{{ my_role_secure_logging }}"
+
+- name: validate_mtv | Record the check result
+  ansible.builtin.set_fact:
+    __my_role_result_mtv:
+      passed: "{{ (__my_role_mtv_csv.resources | default([]) | length > 0)
+        and ((__my_role_mtv_csv.resources[0].status.phase | default('')) == 'Succeeded') }}"
+      detail: "CSV phase {{ __my_role_mtv_csv.resources[0].status.phase | default('not found') }}"
+```
+
+The report collects every result (a check that never ran counts as failed), displays
+a summary, and gates:
+
+```yaml
+# tasks/report.yml
+- name: report | Build the check summary
+  ansible.builtin.set_fact:
+    __my_role_summary:
+      MTV operator: "{{ __my_role_result_mtv | default({'passed': 'False', 'detail': 'check did not run'}) }}"
+
+- name: report | Display the summary
+  ansible.builtin.debug:
+    msg: "{{ __my_role_check.value.passed | bool | ternary('PASS', 'FAIL') }} | {{ __my_role_check.key }}: {{ __my_role_check.value.detail }}"
+  loop: "{{ __my_role_summary | dict2items }}"
+  loop_control:
+    loop_var: __my_role_check
+
+- name: report | Assert every check passed
+  ansible.builtin.assert:
+    that:
+      - >-
+        __my_role_summary | dict2items
+        | map(attribute='value.passed') | map('bool')
+        | select('equalto', false) | list | length == 0
+```
+
+### Gotchas
+
+- Templated `passed` values arrive as the strings `"True"`/`"False"` — every
+  consumer must cast with `| bool` before comparing
+- A check whose target is not configured should fail THAT check with instructions,
+  not crash the play: guard the probe with `when:` and record "not configured" as
+  the result
+- Put the report in an `always:` block so a crashed check still reports the rest
+
 ## Avoid set_fact with loop for Data Filtering
 
 **Pattern**: Use Jinja2 filters (`selectattr`, `map`, `zip`) to build filtered subsets
@@ -1400,6 +1476,81 @@ Use a descriptive name that matches the loop content:
 - List of VMs → `loop_var: vm_info`
 - Registered results → `loop_var: vm_result` or `loop_var: teardown_result`
 
+## Task Name Prefix Convention
+
+**Pattern**: Task names inside included task files start with the file stem plus a
+pipe (`{stem} | `). The `tasks/main.yml` orchestrator is exempt.
+
+### Why?
+
+1. **Traceability**: Execution output shows which task file a task came from
+   (`validate | Assert target exists` vs `pre_validate | Assert target exists`)
+2. **ansible-lint enforcement**: The `name[prefix]` rule with
+   `task_name_prefix: "{stem} | "` fails task files that skip the prefix
+3. **Consistency**: Every task in the run reads as `file | action`
+
+### Standard Pattern
+
+```yaml
+# roles/my_role/tasks/validate.yml
+- name: validate | Assert required variables are defined
+  ansible.builtin.assert:
+    that:
+      - my_role_target is defined
+
+- name: validate | Assert target exists in AAP inventory
+  ansible.builtin.assert:
+    that:
+      - my_role_target in hostvars
+```
+
+The orchestrator (`tasks/main.yml`) keeps unprefixed names:
+
+```yaml
+# roles/my_role/tasks/main.yml — orchestrator, exempt
+- name: Include validation tasks
+  ansible.builtin.include_tasks:
+    file: validate.yml
+    apply:
+      tags: [validate]
+  tags: [validate]
+```
+
+### Anti-Pattern
+
+[ANTI-PATTERN] **Don't**: Leave task-file names unprefixed
+```yaml
+# roles/my_role/tasks/validate.yml
+- name: Assert target exists   # Missing 'validate | ' prefix
+```
+
+[CORRECT] **Do**: Prefix with the file stem
+```yaml
+- name: validate | Assert target exists
+```
+
+## End Every YAML File with Document End
+
+**Pattern**: Every YAML file (tasks, defaults, vars, meta, playbooks) ends with `...`.
+
+### Why?
+
+1. **Standalone yamllint enforcement**: yamllint's default config sets
+   `document-end: disable` and ansible-lint's embedded config doesn't enable
+   it — enforce with a yamllint CI pass configured `document-end: {present: true}`
+2. **Concatenation safety**: Files can be streamed or concatenated without parser
+   ambiguity
+
+### Standard Pattern
+
+```yaml
+---
+- name: my_role | Do the thing
+  ansible.builtin.debug:
+    msg: "done"
+...
+```
+
 ## Use Handlers for Final User Output
 
 **Pattern**: Use handlers to display final messages to users, keeping task output clean.
@@ -1464,6 +1615,33 @@ replace: '\12m'  # Interpreted as backreference to group 12
 
 # [CORRECT] — named group syntax avoids ambiguity
 replace: '\g<1>2m'  # Backreference to group 1, followed by literal "2m"
+```
+
+## Bool-Typed Argument Specs Fed by Env Strings Need a bool Cast
+
+**Pattern**: When a bool-typed `argument_specs.yml` option is fed by an environment
+variable through a default chain, cast with `| bool` at the end of the chain.
+
+### Why?
+
+A raw env string (`"false"`, `"0"`) passes through a folded Jinja block as a string.
+Without the cast the argument-spec bool type receives a string — the type contract is
+dishonest and the value can flip unexpectedly (`"false"` is truthy as a non-empty
+string in some comparisons). Found as a real BLOCK in a collection PR where
+`verify_ssl` arrived as a raw env string.
+
+### Anti-Pattern
+
+[ANTI-PATTERN] **Don't**: Feed a raw env string to a bool-typed option
+```yaml
+# meta/argument_specs.yml: type: bool
+my_role_verify_ssl: "{{ lookup('env', 'K8S_AUTH_VERIFY_SSL') | default(true) }}"
+```
+
+[CORRECT] **Do**: Cast at the end of the chain
+```yaml
+my_role_verify_ssl: "{{ (lookup('env', 'K8S_AUTH_VERIFY_SSL')
+  | default(openshift_verify_ssl | default(true), true)) | bool }}"
 ```
 
 ## include_vars Evaluates Jinja Templates in Loaded YAML
