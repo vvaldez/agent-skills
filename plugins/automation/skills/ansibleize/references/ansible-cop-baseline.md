@@ -309,8 +309,9 @@ minor_changes:
 
 Sections: `major_changes`, `minor_changes`, `breaking_changes`, `bugfixes`,
 `deprecated_features`, `removed_features`, `security_fixes`, `known_issues`.
-The `changelogs/` directory is excluded from ansible-lint — antsibull-changelog
-lints it instead (`antsibull-changelog lint` in tox/CI).
+ansible-lint lints fragments as YAML (and ships `schema[changelog]`) —
+`antsibull-changelog lint` is the dedicated fragment validator (run it in
+tox/CI).
 
 ### docsible README Blocks
 

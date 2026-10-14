@@ -1308,8 +1308,9 @@ Each check registers its probe with `failed_when: false` and records a result fa
 - name: validate_mtv | Record the check result
   ansible.builtin.set_fact:
     __my_role_result_mtv:
-      passed: "{{ (__my_role_mtv_csv.status.phase | default('')) == 'Succeeded' }}"
-      detail: "CSV phase {{ __my_role_mtv_csv.status.phase | default('not found') }}"
+      passed: "{{ (__my_role_mtv_csv.resources | default([]) | length > 0)
+        and ((__my_role_mtv_csv.resources[0].status.phase | default('')) == 'Succeeded') }}"
+      detail: "CSV phase {{ __my_role_mtv_csv.resources[0].status.phase | default('not found') }}"
 ```
 
 The report collects every result (a check that never ran counts as failed), displays
@@ -1534,8 +1535,9 @@ The orchestrator (`tasks/main.yml`) keeps unprefixed names:
 
 ### Why?
 
-1. **ansible-lint enforcement**: `yaml[document-end]` fails files without it under
-   profile: production
+1. **Standalone yamllint enforcement**: yamllint's default config sets
+   `document-end: disable` and ansible-lint's embedded config doesn't enable
+   it — enforce with a yamllint CI pass configured `document-end: {present: true}`
 2. **Concatenation safety**: Files can be streamed or concatenated without parser
    ambiguity
 
@@ -1639,7 +1641,7 @@ my_role_verify_ssl: "{{ lookup('env', 'K8S_AUTH_VERIFY_SSL') | default(true) }}"
 [CORRECT] **Do**: Cast at the end of the chain
 ```yaml
 my_role_verify_ssl: "{{ (lookup('env', 'K8S_AUTH_VERIFY_SSL')
-  | default(my_verify_ssl | default(true), true)) | bool }}"
+  | default(openshift_verify_ssl | default(true), true)) | bool }}"
 ```
 
 ## include_vars Evaluates Jinja Templates in Loaded YAML

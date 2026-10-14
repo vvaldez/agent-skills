@@ -169,6 +169,11 @@ Do NOT apply `no_log` to tasks that only reference non-secret vars (datacenter n
 environment variables to inventory variables with an empty-string terminal, so the
 same role runs identically from an AAP job template and from a controller.
 
+Consumer-facing inventory vars (`openshift_host`, `openshift_api_key`, ...) are
+deliberately unnamespaced — a shared inventory interface across roles, exempt
+from role-prefix naming. Role-internal vars still use the `<role>_` and
+`__<role>_` prefixes.
+
 ### Why?
 
 1. **AAP job templates**: Credential types inject env vars (`K8S_AUTH_*` from the
@@ -177,6 +182,10 @@ same role runs identically from an AAP job template and from a controller.
 2. **Controller runs**: The same variables resolve from inventory when the role runs
    from a laptop/controller with no AAP injection
 3. **One interface**: Consumers set inventory vars once; AAP overrides at runtime
+4. **Vault-encrypt inventory credentials**: on non-AAP runs the inventory
+   terminal holds the real credential — credential-bearing inventory vars must
+   be vault-encrypted (`!vault`); plaintext credential values in inventory are
+   a violation
 
 ### Standard Pattern
 
@@ -201,6 +210,16 @@ my_role_openshift_verify_ssl: "{{ (lookup('env', 'K8S_AUTH_VERIFY_SSL')
   | default(openshift_verify_ssl | default(true), true)) | bool }}"
 ```
 
+On non-AAP runs the inventory terminal holds the real credential — store
+credential-bearing inventory vars vault-encrypted:
+
+```yaml
+# inventory/host_vars/<controller>.yml
+openshift_api_key: !vault |
+  $ANSIBLE_VAULT;1.2;AES256;
+  <encrypted payload>
+```
+
 ### Env Var Families
 
 | Credential type | Injects | Resolves |
@@ -218,15 +237,16 @@ enforced by an entry assert instead:
 
 ```yaml
 # tasks/pre_validate.yml
-- name: my_role | Validate required connection variables
+- name: pre_validate | Validate required connection variables
   ansible.builtin.assert:
     that:
       - my_role_openshift_host | length > 0
       - my_role_openshift_api_key | length > 0
     fail_msg: >-
       OpenShift connection is required. Set openshift_host and openshift_api_key
-      in the inventory (or run from AAP where the target credential injects
-      K8S_AUTH_HOST and K8S_AUTH_API_KEY).
+      in the inventory (vault-encrypted — plaintext credential values in
+      inventory are a violation; or run from AAP where the target credential
+      injects K8S_AUTH_HOST and K8S_AUTH_API_KEY).
 ```
 
 Credentials that are required as plain role variables (no env injection) must NOT

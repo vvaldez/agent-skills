@@ -72,8 +72,9 @@ task that has a proper module replacement. This is the most common violation.
 - Missing `no_log` on tasks handling secrets
 - `no_log: true` hardcoded instead of toggleable (`no_log: "{{ role_secure_logging }}"`)
 - Empty string defaults for required credentials (exception: AAP-injected
-  credentials cascade from env vars with an empty-string terminal and are
-  validated by an entry assert — see the AAP patterns reference)
+  credentials cascade from env vars with an empty-string terminal — applies
+  only when an entry assert enforces non-empty for that variable; flag
+  otherwise — see the AAP patterns reference)
 - Vault files committed or tracked in git
 
 #### 3. Role Structure
@@ -84,7 +85,7 @@ task that has a proper module replacement. This is the most common violation.
 - Internal variables not using `__` prefix
 - Missing distribution-specific variable files
 - Missing changelog fragments for collection PRs (`changelogs/fragments/`;
-  ansible-lint excludes `changelogs/` — antsibull-changelog lints it)
+  ansible-lint lints them as YAML — validate with `antsibull-changelog lint`)
 
 #### 4. Task Patterns
 
@@ -94,8 +95,9 @@ task that has a proper module replacement. This is the most common violation.
 - Task names in included task files not prefixed with the file stem
   (`{stem} | ` — enforced by ansible-lint `name[prefix]` with
   `task_name_prefix: "{stem} | "`; main.yml orchestrator tasks are exempt)
-- Missing YAML document end (`...` — enforced by `yaml[document-end]`
-  under ansible-lint profile: production)
+- Missing YAML document end (`...` — hygiene convention; yamllint's default
+  config disables `document-end` and ansible-lint doesn't enable it, so enforce
+  with a standalone yamllint pass configured `document-end: {present: true}`)
 - Missing FQCN on module names
 - `set_fact` + `loop` for filtering instead of `select`/`map` filters
 - `delegate_to: localhost` on `set_fact` (unnecessary for lookups)
