@@ -5,7 +5,7 @@
 
 ## Context
 
-`/issue-to-mr` and `/mr-followthrough` encode a specific team's GitLab
+`/issue-to-spec` and `/mr-followthrough` encode a specific team's GitLab
 workflow: a particular instance, a Linux test VM, a pipeline helper, and
 designated reviewer handles. First drafts hardcoded those values and were
 submitted to this public marketplace repo; a dual-blind code review
