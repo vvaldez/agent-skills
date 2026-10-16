@@ -49,6 +49,7 @@
 33. [Playbook Calling Pattern](#playbook-calling-pattern)
 34. [Key Variables](#key-variables)
 35. [Important Notes](#important-notes)
+36. [Collection Integration Testing: FQCN, Never Repo-Relative Paths](#collection-integration-testing-fqcn-never-repo-relative-paths)
 
 ---
 
@@ -1348,6 +1349,55 @@ a summary, and gates:
   the result
 - Put the report in an `always:` block so a crashed check still reports the rest
 
+### failed_when and Module Crashes
+
+`failed_when: false` suppresses a module's reported failure. A module that raises
+(a Python exception) behaves differently by core version: on ansible-core 2.16 the
+crash fails the task outright and `failed_when` never runs; newer cores un-error the
+crash so the task continues, but the registered result carries the exception instead
+of module output (https://github.com/ansible/ansible/issues/85505,
+https://github.com/ansible/ansible/pull/85516). Either way the registered result
+lacks the module's normal shape: probes that must tolerate a crashing module use
+`ignore_errors: true` and shape-check the registered result afterwards:
+
+```yaml
+- name: validate_vcenter | Probe the REST endpoint
+  ansible.builtin.uri:
+    url: "{{ my_role_vcenter_host }}/rest/com/vmware/cis/session"
+  register: __my_role_vcenter_rest
+  ignore_errors: true
+  failed_when: false
+  no_log: "{{ my_role_secure_logging }}"
+
+- name: validate_vcenter | Record the check result
+  ansible.builtin.set_fact:
+    __my_role_result_vcenter:
+      passed: "{{ __my_role_vcenter_rest is not failed and
+        __my_role_vcenter_rest.json is defined }}"
+```
+
+The shape check must match what the probe is for: `json is defined` proves
+reachability, not data presence — a 401 with a JSON error body passes it. For
+data-presence probes, require the payload itself (see the next section).
+
+### Empty Is Not Success: Fall Back on No-Data or Empty
+
+An endpoint behind a path-mapping proxy can answer HTTP 200 with an empty body or
+an empty list instead of failing. Treat empty as no-data: trigger the fallback on
+a failed probe OR an empty result, and when merging results from two sources
+prefer the one with data.
+
+```yaml
+# [ANTI-PATTERN] — success on HTTP 200 alone: a proxy can return 200 with an empty body
+- ansible.builtin.set_fact:
+    passed: "{{ __probe is not failed }}"
+
+# [CORRECT] — empty is no-data: the fallback fires on failure OR empty
+- ansible.builtin.set_fact:
+    passed: "{{ (__probe is not failed and __probe.json | default([], true) | length > 0)
+      or __fallback is not failed }}"
+```
+
 ## Avoid set_fact with loop for Data Filtering
 
 **Pattern**: Use Jinja2 filters (`selectattr`, `map`, `zip`) to build filtered subsets
@@ -1602,6 +1652,27 @@ undefined variables unless the second boolean argument is `true`.
 # [CORRECT] — default(value, true) catches None/false/empty too
 - ansible.builtin.set_fact:
     version: "{{ value | regex_search('(\\d+)', '\\1') | default([''], true) | first }}"
+```
+
+## None Renders as Empty String at set_fact
+
+A value that is `None` (an undefined hostvar, a missing dict key, a crashed probe's
+result) renders as the empty string when stored with `set_fact`. The empty string is
+falsy but so is an empty list — truthiness cannot tell the sentinel from a real
+value. Type-test with `is not string` instead:
+
+```yaml
+# [ANTI-PATTERN] — a defined-None key renders as ''; default([]) never runs
+- ansible.builtin.set_fact:
+    resources: "{{ probed.resources | default([]) }}"
+    # probed.resources = None (JSON null) renders '' — not []
+    # (a None parent is caught: probed.resources is undefined there, so default([]) fires)
+
+# [CORRECT] — is not string separates a real list from the '' sentinel
+- ansible.builtin.set_fact:
+    has_resources: "{{ probed.resources is defined
+      and probed.resources is not string
+      and probed.resources | length > 0 }}"
 ```
 
 ## Python Regex Backreference Ambiguity
@@ -1998,3 +2069,26 @@ build_iso_networking:
 - Use `remote_src: yes` when copying mounted ISO contents
 - The `first_found` query with `errors='ignore'` gracefully handles missing platform files
 - Cross-host variable access uses `hostvars[hostname].variable` pattern
+
+# Collection Integration Testing: FQCN, Never Repo-Relative Paths
+
+`ansible-test integration` runs targets from a copy under the installed collection
+(`tests/output/.tmp/integration/<target>-<random>/`), not the repo tree. A
+repo-relative path that walks out of the target works locally and breaks in CI with
+"Could not find or access". Reference collection content by FQCN instead:
+
+```yaml
+# [ANTI-PATTERN] — repo-relative walk passes locally, breaks under ansible-test
+- ansible.builtin.include_tasks: "{{ role_path }}/../../../../roles/myrole/tasks/report.yml"
+
+# [CORRECT] — FQCN resolves through the installed collection in both layouts
+- ansible.builtin.include_role:
+    name: mynamespace.mycollection.myrole
+    tasks_from: report.yml
+```
+
+`include_role` also binds task-level `vars:` as role params (higher precedence than
+role defaults/vars), and on ansible-core 2.16 and earlier does not count per-task in
+the play recap the way `include_tasks` does (2.17+ accounts for include_role tasks,
+https://github.com/ansible/ansible/pull/79260). Neither changes coverage; both
+change observable output on the versions where they apply.
