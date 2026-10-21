@@ -9,7 +9,7 @@
   "plugins": [
     {
       "name": "dev-workflow",
-      "description": "Git workflow automation: gentle branch cleanup (/tidy), unified MR creation (/ship), session statistics (/stats), issue spec-to-MR pipeline (/issue-to-spec, /spec-to-mr), and review-feedback follow-through (/mr-followthrough).",
+      "description": "Git workflow automation: gentle branch cleanup (/tidy), unified MR creation (/ship), session statistics (/stats), issue spec-to-MR pipeline (/issue-to-spec, /spec-to-mr), review-feedback follow-through (/mr-followthrough), and peer-review feeding with post-back (/peer-review-feed).",
       "source": "./plugins/dev-workflow",
       "category": "productivity"
     },
