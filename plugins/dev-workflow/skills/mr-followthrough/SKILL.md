@@ -149,6 +149,16 @@ hardcode it. (`<gitlab-host>` is exempt: it is derived at runtime.)
    inline-quoted shell text).
 10. **Merge gate** — only when `--merge` was given:
     - Pipeline must be green.
+    - **Findings accounting (hard gate).** Cross-reference EVERY finding
+      from the latest reviewer verdict against the MR's commits and
+      follow-up issues. Each finding must be one of: fixed in a commit
+      on the MR (cite the sha), filed as a follow-up issue (cite the
+      URL — only when the fix is wildly out of scope), or explicitly
+      skipped with the reason. A finding with no accounting BLOCKS the
+      merge: fix it, file it, or get the operator's explicit say-so —
+      never merge with unaccounted findings. The close-out reply (step
+      9) must carry one line per finding; a close-out reporting only
+      the merge status does not satisfy this gate.
     - **Approval evidence** — prefer (a); (b) and (c) supplement, never
       replace, server-side approval rules and branch protection:
       a. GitLab approval by a non-author
