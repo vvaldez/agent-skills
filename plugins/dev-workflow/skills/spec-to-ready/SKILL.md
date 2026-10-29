@@ -117,6 +117,17 @@ hardcode it. (`<gitlab-host>` is exempt: it is derived at runtime.)
   commits → diagnose, fix, re-push (max 2 attempts). Red from
   infra/runner → stop + report the exact state. `detailed_merge_status`
   `checking` is transient — re-poll once before treating it as blocked.
+- **Label ladder.** The ORCHESTRATOR flips the board's `workflow::*` label
+  at each stage boundary — never the stage agents — and verifies each flip
+  with a follow-up GET (a silent no-op label-add strands the card):
+  stage-1 dispatch → `workflow::agent-active`; stage-1 gate met (MR
+  pushed, pipeline green, stages 2-3 running) → `workflow::in-review`;
+  final stage complete (operator-ready end state) →
+  `workflow::needs-approval`; halt → `workflow::human-in-the-loop`. The
+  board automation enforces ONE `workflow::*` label per issue — flip by
+  adding the new label; the old one auto-removes. All four exist on the
+  team tenancy; if any is missing, ask the operator before creating
+  labels.
 
 ## Stage 1 — implement + push (agent A)
 
@@ -246,6 +257,9 @@ operator — THE OPERATOR REVIEWS AND MERGES.
 - Red pipeline from infra/runner issues.
 - A stage run failed or was cancelled with no takeover within one poll
   cycle.
+
+A halt also flips the board label to `workflow::human-in-the-loop`
+(the Label ladder invariant) so the card reflects "operator resumes".
 
 ## Rules
 
