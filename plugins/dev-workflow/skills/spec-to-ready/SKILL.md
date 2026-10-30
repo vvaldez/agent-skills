@@ -256,6 +256,20 @@ operator — THE OPERATOR REVIEWS AND MERGES.
   `blocked` issue to `todo` (use `issue update --status todo` for
   blocked), and a silent no-op release strands the card. Resume =
   reassign + wake.
+- **Wake once per dispatch — `agent wake` is NOT idempotent.** Repeated
+  wakes queue SEPARATE concurrent runs per agent, and concurrent runs on
+  one agent working the same issue collide on the branch (push
+  rejections, duplicate commits). Before any re-wake, verify the first
+  run is dead via the company live-runs listing. A wake that returns
+  "queued" with no run in live-runs may simply not have started yet —
+  wait a few minutes and re-check; never re-wake on that reading alone,
+  because a re-wake stacks a second run when the first actually started.
+- **Dedupe before creating a stage card.** Search the board for an
+  existing open or completed card with the same stage+issue title
+  before `issue create` — two orchestrators (or one lost-state
+  orchestrator) can dispatch the same stage independently, and the
+  duplicate only surfaces when the stage agent stands down. One card
+  per stage per issue, verified before wake.
 - **Single harness:** run the stages as sequential subagent invocations
   with fresh context — agent per stage, passing the stage contract, the
   MR number/branch/sha, and the current findings state.
