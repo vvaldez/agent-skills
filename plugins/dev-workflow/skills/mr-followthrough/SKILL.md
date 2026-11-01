@@ -149,8 +149,18 @@ hardcode it. (`<gitlab-host>` is exempt: it is derived at runtime.)
    inline-quoted shell text).
 10. **Merge gate** — only when `--merge` was given:
     - Pipeline must be green.
-    - **Approval evidence** — prefer (a); (b) supplements, never
-      replaces, server-side approval rules and branch protection:
+    - **Findings accounting (hard gate).** Cross-reference EVERY finding
+      from the latest reviewer verdict against the MR's commits and
+      follow-up issues. Each finding must be one of: fixed in a commit
+      on the MR (cite the sha), filed as a follow-up issue (cite the
+      URL — only when the fix is wildly out of scope), or explicitly
+      skipped with the reason. A finding with no accounting BLOCKS the
+      merge: fix it, file it, or get the operator's explicit say-so —
+      never merge with unaccounted findings. The close-out reply (step
+      9) must carry one line per finding; a close-out reporting only
+      the merge status does not satisfy this gate.
+    - **Approval evidence** — prefer (a); (b) and (c) supplement, never
+      replace, server-side approval rules and branch protection:
       a. GitLab approval by a non-author
          (`.../merge_requests/<N>/approvals` → `approved == true` with an
          approving user who is not the MR author), OR
@@ -161,7 +171,21 @@ hardcode it. (`<gitlab-host>` is exempt: it is derived at runtime.)
          the final push (note `created_at` after the final pipeline's
          `created_at` — the pipeline's `updated_at` moves as jobs run,
          so it marks completion, not push time).
-         (Extend the phrase set here when the team's phrasing changes.)
+         (Extend the phrase set here when the team's phrasing changes.), OR
+      c. **Prior approval surviving a rebase reset.** A rebase push
+         resets every GitLab approval (system note: "reset approvals
+         from @\<user\> by pushing to the branch") without changing the
+         reviewed content — the approval counts. Read the system notes
+         (`jq 'select(.system == true)'` on `.../notes`): a prior
+         "approved this merge request" note by a handle in
+         `<approvers>` counts as approval evidence when everything
+         after it is a reset-by-push — no later approval retraction,
+         no later human change-request comment, no new commits beyond
+         the rebase itself. Present the FULL chain (approval note
+         author + timestamp, every reset note timestamp, and any
+         commits added after the approval) and require the explicit
+         confirm below. New commits or change requests after the
+         approval void (c) — fall back to (a)/(b) or do not merge.
     - Present the detected approval evidence to the user and require an
       explicit confirm before calling merge. For (b) evidence, present
       the FULL note body (author, timestamp, verbatim text) — not just
@@ -170,8 +194,9 @@ hardcode it. (`<gitlab-host>` is exempt: it is derived at runtime.)
     - Evidence present + confirmed → `<gitlab-cli> mr merge <N> --yes`,
       then remove the worktree.
     - No evidence → DO NOT merge. Report exactly what is missing
-      ("no non-author approval or merge-approval comment found") so the
-      user can ping the reviewer or merge manually.
+      ("no non-author approval, prior approval, or merge-approval
+      comment found") so the user can ping the reviewer or merge
+      manually.
 11. **Report.** Per MR: findings + dispositions, commits, pipeline ID,
     merge status (merged / stopped at green / refused-merge + reason),
     follow-up issues filed, remaining NOTEs.
