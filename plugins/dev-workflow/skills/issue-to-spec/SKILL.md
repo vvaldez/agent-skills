@@ -46,8 +46,10 @@ in the description.
 
 ## Local config
 
-Team-specific values resolve from `CLAUDE.local.md` (gitignored) in the
-repo root, or from the environment — never hardcoded in this skill:
+Team-specific values resolve from a gitignored local memory file in the
+repo root — `CLAUDE.local.md` (Claude Code) or `AGENTS.local.md`
+(OpenCode/other harnesses; check both) — or from the environment — never
+hardcoded in this skill:
 
 | Placeholder | Value |
 |-------------|-------|

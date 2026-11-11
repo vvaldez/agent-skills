@@ -3,8 +3,9 @@ name: grill-harness
 description: >
   Adversarial grilling harness that extends upstream /grilling with an expert panel,
   structured decision output, and enhanced CONTEXT.md format. Scans ~/.claude/agents/
-  for available expert personas and assembles a challenge panel. Composes with /grilling,
-  /grill-with-docs, /grill-me, and /wayfinder sessions that invoke grilling.
+  and ~/.config/opencode/agent/ for available expert personas and assembles a challenge
+  panel. Composes with /grilling, /grill-with-docs, /grill-me, and /wayfinder sessions
+  that invoke grilling.
   Use when user says /grill-harness, /grilling, /grill-with-docs, /grill-me,
   "grill with experts", "adversarial review", "challenge this with a panel",
   or wants structured decision tables from grilling.
@@ -26,10 +27,14 @@ session.
 
 ## Step 1: Assemble the Adversarial Panel
 
-Before asking any questions, scan `~/.claude/agents/` to discover available expert personas.
+Before asking any questions, scan both persona directories to discover available
+expert personas — Claude Code keeps them in `~/.claude/agents/`, OpenCode in
+`~/.config/opencode/agent/` (both may exist; merge the results). Use `find`,
+which tolerates a missing directory on both zsh and bash (an unmatched `ls`
+glob aborts in zsh):
 
 ```bash
-ls ~/.claude/agents/*.md 2>/dev/null
+find ~/.claude/agents ~/.config/opencode/agent -maxdepth 1 -name '*.md' 2>/dev/null
 ```
 
 If agents are found, read the filenames and select 3-5 agents whose expertise is most
@@ -43,10 +48,10 @@ should be framed from the perspective of one of these experts.
 
 Select the most relevant agent file by reading its description, not just its filename.
 
-**If no agents are found in `~/.claude/agents/`:**
+**If no agents are found in either persona directory:**
 Skip the adversarial panel and inform the user:
 
-> No agent personas found in `~/.claude/agents/`. The adversarial panel adds significant
+> No agent personas found in `~/.claude/agents/` or `~/.config/opencode/agent/`. The adversarial panel adds significant
 > value to grilling sessions by challenging decisions from multiple expert perspectives.
 > Consider installing agent personas from [agency-agents](https://github.com/msitarzewski/agency-agents)
 > or creating your own.
@@ -70,9 +75,11 @@ Different experts may challenge the same decision from different angles — that
 In addition to the base `/grilling` behavior:
 
 - **One question at a time.** Never dump multiple questions.
-- **Prefer AskUserQuestion with selectable options.** Put recommended choice first with
-  "(Recommended)" suffix. Use the `description` field for tradeoffs. If AskUserQuestion
-  is not available, fall back to a numbered markdown list.
+- **Prefer the harness's structured question tool with selectable options** —
+  `AskUserQuestion` in Claude Code, `question` in OpenCode. Put the
+  recommended choice first with a "(Recommended)" suffix. Use the
+  `description` field for tradeoffs. If no structured question tool is
+  available, fall back to a numbered markdown list.
 - **Challenge vague answers.** "It depends" → "On what? Enumerate the cases."
 - **Acknowledge good decisions fast.** Don't grill for the sake of grilling.
 - **Expose hidden dependencies.** "You said A, but earlier we decided B. Those conflict."

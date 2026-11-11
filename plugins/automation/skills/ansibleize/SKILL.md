@@ -32,7 +32,7 @@ you approve.
 3. **Read the CoP baseline**: `references/ansible-cop-baseline.md` — Red Hat Community
    of Practice standards. These are the floor; the patterns references are the ceiling.
 
-3. **Detect what you're looking at** — the skill adapts to the input:
+4. **Detect what you're looking at** — the skill adapts to the input:
 
    | Input | Approach |
    |-------|----------|
@@ -187,19 +187,23 @@ When the input is a script, not Ansible:
 For Chef/Puppet codebases, recommend [x2ansible](https://github.com/x2ansible/) for
 the initial conversion, then offer to run an audit on the converted output.
 
-## Integrating with CLAUDE.md
+## Integrating with AGENTS.md / CLAUDE.md
 
 The patterns enforced by this skill should also guide everyday Ansible coding — not just
-explicit `/ansibleize` audits. Add this to your project's `CLAUDE.md` so the patterns are
-ambient context for all Ansible work:
+explicit `/ansibleize` audits. Add this to your project's agent memory file — `AGENTS.md`
+(read by OpenCode, Codex CLI, Cursor) or `CLAUDE.md` (Claude Code) — so the patterns are
+ambient context for all Ansible work. The reference documents ship inside the skill
+directory; point the snippet at wherever the plugin is deployed (e.g.
+`~/.config/opencode/skills/ansibleize/references/` for the OpenCode local deploy, the
+plugin cache path for Claude Code):
 
 ```markdown
 ## Ansible Patterns
 
 Follow the patterns in the /ansibleize skill's reference documents for all Ansible work.
-When the agent-skills plugin is installed, the references are at:
+The references ship with the skill (adjust the path to your deployment):
 
-  ~/.claude/plugins/cache/vvaldez-agent-skills/automation/*/skills/ansibleize/references/
+  <skill-base-dir>/references/
 
 Read `ansible-patterns.md` for core Ansible patterns.
 Read `ansible-automation-platform-patterns.md` for AAP-specific patterns (content tiers, secure logging).
@@ -209,8 +213,8 @@ For a full codebase audit, invoke `/ansibleize`.
 ```
 
 This gives you two access paths to the same source of truth:
-- **Everyday coding**: CLAUDE.md points the agent to the reference docs. Patterns are
-  consulted automatically when writing Ansible without invoking the skill.
+- **Everyday coding**: the memory file points the agent to the reference docs. Patterns
+  are consulted automatically when writing Ansible without invoking the skill.
 - **Deliberate audit**: `/ansibleize` runs a structured audit-then-fix workflow using
   the same references but with categorized reporting and approval gates.
 

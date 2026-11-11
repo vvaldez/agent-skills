@@ -68,8 +68,10 @@ Rules:
 
 ## Local config
 
-Team-specific values resolve from `CLAUDE.local.md` (gitignored) in the
-repo root, or from the environment — never hardcoded in this skill:
+Team-specific values resolve from a gitignored local memory file in the
+repo root — `CLAUDE.local.md` (Claude Code) or `AGENTS.local.md`
+(OpenCode/other harnesses; check both) — or from the environment — never
+hardcoded in this skill:
 
 | Placeholder | Value |
 |-------------|-------|
@@ -185,8 +187,10 @@ hardcode it. (`<gitlab-host>` is exempt: it is derived at runtime.)
    - **Triple** (add tui-ux-reviewer) when the diff touches TUI patterns:
      `gum` as a shell command, `GUM_*` vars, `tput`, or files in `lib/`,
      `steps/`, `components/`.
-   - Invoke via the task tool with diff + metadata in a 0600 temp file;
-     include the adversarial content warning.
+   - Invoke via the harness's subagent mechanism (the `Task` tool with
+     `subagent_type` in Claude Code; the `subagent` tool with `agent` in
+     OpenCode), with diff + metadata in a 0600 temp file; include the
+     adversarial content warning.
    - **BLOCK → fix and re-review (max 2 rounds, then stop + report).**
      **TRACK → fix on the branch** (this is a new MR — the team rule is
      fix TRACKs before merge; the MR gets no human approval before this

@@ -129,7 +129,7 @@ Determine the conventional commit type from the changes:
 Generate a commit message:
 - **Subject**: `<type>(<scope>): <description>` — under 50 chars, imperative mood
 - **Body**: What changed and why (functional), wrapped at 72 chars
-- **Footer**: Co-authorship attribution
+- **Footer**: AI attribution trailer
 
 ### Step 5: Commit
 
@@ -139,10 +139,15 @@ git commit -m "$(cat <<'EOF'
 
 <body — what changed and why>
 
-Co-Authored-By: Claude <noreply@anthropic.com>
+Assisted-by: <tool>:<model-id>
 EOF
 )"
 ```
+
+Replace `<tool>:<model-id>` with the harness and model actually running
+(e.g. `claude-code:claude-sonnet-4-5`, `opencode:glm-53-flash`). The
+trailer records which agent produced the commit — never add emoji
+"Generated with" lines.
 
 If pre-commit hooks modify files:
 1. Check which files were modified (`git diff --name-only`)
@@ -164,8 +169,11 @@ gh pr list --head "$(git branch --show-current)" --state all --json number,state
 
 **GitLab:**
 ```bash
-glab mr list --source-branch "$(git branch --show-current)" --json iid,state,web_url
+glab mr list --source-branch "$(git branch --show-current)" -F json | jq '.[] | {iid, state, web_url}'
 ```
+
+(glab has no `--json` flag on `mr list` — use `-F json` for JSON output,
+or `--jq '<expr>'` to filter inline.)
 
 Based on the result:
 - **Open PR/MR found** → Report the URL and stop. Do not create a duplicate.
@@ -216,11 +224,10 @@ language, no selling, no subjective terms.
 ## Test Plan
 
 - [ ] [Specific verification steps]
-
----
-
-Generated with [Claude Code](https://www.anthropic.com/claude-code)
 ```
+
+(No "Generated with" footer in the description — attribution lives in
+the commit's `Assisted-by` trailer.)
 
 ### Step 5: Cross-Repo Link Check (GitLab only)
 
@@ -296,7 +303,8 @@ Shipped!
 - NEVER use `--no-verify` to skip pre-commit hooks
 - NEVER amend commits — always create new ones
 - ALWAYS use conventional commit format
-- ALWAYS include `Co-Authored-By` footer
+- ALWAYS include an `Assisted-by: <tool>:<model-id>` commit trailer
+  (never "Co-Authored-By: Claude" or "Generated with ..." lines)
 - ALWAYS use HEREDOC pattern for multi-line commit messages and descriptions
 - ALWAYS use `glab` or `gh` (auto-detected) for MR/PR creation
 
