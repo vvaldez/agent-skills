@@ -59,22 +59,29 @@ done
 # The wrappers invoke /grill-harness by name; if no harness-visible location
 # has it, the wrappers degrade to plain grilling. Deployed copies live in
 # ~/.config/opencode/skills/ (via deploy-local-skills.sh) and the Claude Code
-# plugin cache (skill-extras). ~/.claude/skills and ~/.agents/skills are also
-# harness-readable locations.
-found=""
+# plugin cache (skill-extras). ~/.agents/skills is also the USER-scope skill
+# dir for Codex CLI and Cursor — the deploy script's dual target puts
+# grill-harness there, which is what makes the wrappers work in those
+# harnesses.
+found_any=""
+agents_found=""
 for cand in \
     "$HOME/.config/opencode/skills/grill-harness/SKILL.md" \
     "$SKILLS_DIR/grill-harness/SKILL.md" \
     "$HOME/.claude/skills/grill-harness/SKILL.md" \
     "$HOME/.claude/plugins/cache/vvaldez-agent-skills"/skill-extras/*/skills/grill-harness/SKILL.md; do
-    [[ -f "$cand" ]] && { found="$cand"; break; }
+    [[ -f "$cand" ]] || continue
+    [[ -n "$found_any" ]] && info "grill-harness also visible at: $cand" \
+        || { info "grill-harness visible at: $cand"; found_any="$cand"; }
+    [[ "$cand" == "$SKILLS_DIR/"* ]] && agents_found="$cand"
 done
 
-if [[ -n "$found" ]]; then
-    info "grill-harness visible at: $found"
-else
+if [[ -z "$found_any" ]]; then
     warn "grill-harness NOT deployed to any harness-visible location."
     warn "Deploy it: ~/repos/agent-rules/scripts/deploy-local-skills.sh"
+elif [[ -z "$agents_found" ]]; then
+    warn "grill-harness not in $SKILLS_DIR — Codex CLI and Cursor will NOT see it."
+    warn "Deploy the dual target: ~/repos/agent-rules/scripts/deploy-local-skills.sh"
 fi
 
 info "done. Restart harness sessions to pick up the restored skills."
