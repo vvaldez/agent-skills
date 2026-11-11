@@ -68,11 +68,18 @@ the team shared-skills install links some of these same skills (today:
 `drain`, `tidy`, `ship`, `mr-followthrough`) into `~/.agents/skills/`.
 Two protections in `deploy-local-skills.sh` keep both safe:
 
-- **Collision guard**: a target skill dir whose `SKILL.md` matches
-  neither the current render nor has a `.bak` sibling (nor carries the
-  `opencode/slash` provenance marker every deployed skill has) is
-  foreign — the script reports it and aborts before writing anything to
-  that target. Pack skills are never clobbered.
+- **Collision guard** (scans ALL targets before ANY write): a target
+  skill dir is classified by its `SKILL.md` state — matches the current
+  render, or carries the provenance marker (an anchored frontmatter
+  `opencode/slash: "true"` line matched only within the first 25 lines),
+  and it is ours and gets updated. Foreign content sitting on top of a
+  `.bak` that itself carries the marker means someone replaced our
+  deploy after the fact — reported as FOREIGN CHANGE and the deploy
+  aborts. Foreign content otherwise (e.g. a pack skill) is never
+  clobbered — every collision is reported and the script aborts before
+  writing anything. Per skill, companion files (`scripts/`,
+  `references/`) copy before `SKILL.md`, so the activation file lands
+  last and an interrupted deploy leaves the old, self-consistent skill.
 - **Symlink skip**: a skill dir that is itself a symlink is managed
   elsewhere (shared-skills install) — the local render is not deployed
   over it; the skill is skipped with a loud warning and the team copy
