@@ -51,7 +51,7 @@ After every HTML edit: re-render PNG → read PNG → verify → report what you
 Reading PNGs back into the main conversation repeatedly exhausts the context window in
 3-5 iterations. Instead:
 
-1. Spawn a **single long-lived subagent** (Agent tool) for the entire diagram task
+1. Spawn a **single long-lived subagent** (the harness's subagent/Task tool) for the entire diagram task
 2. The subagent does ALL work: edit HTML → render PNG → read PNG → verify → iterate
 3. The subagent reports **text-only summaries** back to the main thread (never PNGs)
 4. The main thread **never reads the PNG** — only relays file paths to the user
@@ -460,11 +460,11 @@ npx -y @mermaid-js/mermaid-cli  # installs puppeteer as a dependency
 
 After every HTML edit:
 1. Render PNG via headless Chrome (or Puppeteer fallback)
-2. Read the PNG back with the Read tool (Claude can view image files)
+2. Read the PNG back with the Read tool (all these harnesses can view image files)
 3. Visually verify: arrows connect to edges, labels readable, no overlaps
 4. Report findings before declaring done
 
-**Why:** Claude cannot look at a browser window. The only way to verify is screenshot
+**Why:** The agent cannot look at a browser window. The only way to verify is screenshot
 to file and Read it. There is no shortcut — the PNG step cannot be skipped.
 
 Report both file paths when done:

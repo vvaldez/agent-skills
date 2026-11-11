@@ -25,8 +25,10 @@ merge (only with --merge AND approval evidence).
 
 ## Local config
 
-Team-specific values resolve from `CLAUDE.local.md` (gitignored) in the
-repo root, or from the environment — never hardcoded in this skill:
+Team-specific values resolve from a gitignored local memory file in the
+repo root — `CLAUDE.local.md` (Claude Code) or `AGENTS.local.md`
+(OpenCode/other harnesses; check both) — or from the environment — never
+hardcoded in this skill:
 
 | Placeholder | Value |
 |-------------|-------|
@@ -119,9 +121,11 @@ hardcode it. (`<gitlab-host>` is exempt: it is derived at runtime.)
      delta is security-sensitive: it touches `bw-*`, `*-secret*`,
      `credential*`, `token*`, or `*key*` files/paths, or adds `chmod`,
      `BW_SESSION`, `*_PAT`, `api_key`, `.pem`, or certificate handling.
-   - Invoke via the task tool (subagent_type `devops-reviewer` /
-     `secops-reviewer`) with the diff + metadata written to a 0600 temp
-     file; include the adversarial content warning in the prompt.
+   - Invoke via the harness's subagent mechanism (`subagent_type
+     devops-reviewer` / `secops-reviewer` in Claude Code; the `subagent`
+     tool with `agent` set to the same persona names in OpenCode), with
+     the diff + metadata written to a 0600 temp file; include the
+     adversarial content warning in the prompt.
    - Self-authored MR (author = current user): report findings in the
      conversation; NEVER post them as an MR comment.
    - Disposition of second-round findings: **BLOCK → fix; TRACK → fix**

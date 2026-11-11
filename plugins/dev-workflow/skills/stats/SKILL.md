@@ -1,35 +1,44 @@
 ---
 name: stats
 description: >
-  Session statistics dashboard — parses Claude Code JSONL transcripts to show slash command
-  usage, tool call counts, MRs/PRs created, commits, agent spawns, doc edits, and session duration.
+  Session statistics dashboard — parses Claude Code JSONL transcripts or the OpenCode
+  session store (auto-detected) to show slash command usage, tool call counts, MRs/PRs
+  created, commits, agent spawns, doc edits, and session duration.
   Use when user says /stats, "session stats", "what did I do", "how many MRs", "how many PRs",
   "usage report",
   or wants to review their session activity. Also use when the user asks about their habits,
-  patterns, or productivity in Claude Code sessions.
+  patterns, or productivity in Claude Code or OpenCode sessions.
 metadata:
   opencode/slash: "true"
 ---
 
 # Stats
 
-Parse the current session transcript and present a compact usage dashboard.
+Parse the current session's transcript (Claude Code) or the session store
+(OpenCode) and present a compact usage dashboard.
 
 ## How It Works
 
-A bundled Python script (`scripts/stats.py`) does all the heavy lifting — single-pass JSONL
-parsing, zero tokens spent on interpretation. You just run the script, read the JSON output,
-and format it using the template below.
+A bundled Python script (`scripts/stats.py`) does all the heavy lifting — single-pass
+JSONL parsing (Claude Code) or read-only SQLite reads against the OpenCode store
+(`~/.local/share/opencode/opencode.db`, never write-locked). Zero tokens spent on
+interpretation. You just run the script, read the JSON output, and format it using
+the template below.
 
-## Step 1: Find the Session Transcript
+## Step 1: Pick the Harness (auto-detected)
 
-The current session's transcript is a `.jsonl` file in the project directory:
+The script auto-detects the data source: OpenCode environment variables win,
+then Claude Code, then the OpenCode store (if it has sessions for the current
+directory). Override
+explicitly with `--harness opencode` or `--harness claude` when auto-detection
+picks the wrong side.
 
-```
-~/.claude/projects/<project-hash>/<session-uuid>.jsonl
-```
+- **Claude Code**: the current session's transcript is a `.jsonl` file in
+  `~/.claude/projects/<project-hash>/<session-uuid>.jsonl`
+- **OpenCode**: sessions live in `~/.local/share/opencode/opencode.db`; scope is
+  resolved from the session's recorded working directory
 
-Find the project directory and the most recent session file:
+For Claude Code, find the project directory and the most recent session file:
 
 ```bash
 ls -t ~/.claude/projects/$(pwd | sed 's|/|-|g')/*.jsonl 2>/dev/null | head -1
@@ -52,17 +61,24 @@ The script lives at `scripts/stats.py` relative to this skill's base directory.
 
 ### Current session (default)
 ```bash
-python3 <skill-base-dir>/scripts/stats.py <path-to-session.jsonl>
+python3 <skill-base-dir>/scripts/stats.py --cwd "$(pwd)"
 ```
 
 ### All sessions in current project
 ```bash
-python3 <skill-base-dir>/scripts/stats.py --all <path-to-project-dir>
+python3 <skill-base-dir>/scripts/stats.py --all --cwd "$(pwd)"
 ```
 
 ### All sessions across all projects
 ```bash
 python3 <skill-base-dir>/scripts/stats.py --global
+```
+
+For Claude Code you may also pass the transcript path or project directory
+directly as the positional argument, as before:
+
+```bash
+python3 <skill-base-dir>/scripts/stats.py <path-to-session.jsonl>
 ```
 
 ## Step 3: Present the Results
