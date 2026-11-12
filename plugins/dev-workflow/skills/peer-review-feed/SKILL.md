@@ -1,13 +1,14 @@
 ---
 name: peer-review-feed
 description: >
-  Feed a peer-mode dual review + findings post-back to the Paperclip
-  agency in one invocation. /peer-review-feed <mr-url> [--disposition]
+  Feed a peer-mode dual review + findings post-back to the configured
+  agent agency in one invocation. /peer-review-feed <mr-url> [--disposition]
   [--agent <name>] — resolves the MR, refuses self-authored MRs
   (findings stay in-session), creates the agency card with the
   GENERATED posting contract (one standalone MR note, posted
   immediately after the review, no preview gate, no threads, no
-  verdict, no approval), assigns it at creation, and wakes the agent.
+  verdict, no approval), and assigns it at creation (the assignment
+  itself wakes the agent bound — never an explicit second wake).
   Use when the user says "feed a peer review", "review this MR and
   post the findings", "peer-review-feed", or pastes a peer MR URL to
   review-and-post.
@@ -23,7 +24,7 @@ Packages what was hand-crafted three times: a peer-MR dual review, fed to the ag
 the MR without the preview-and-confirm cycle. The invocation IS the
 per-invocation preview-bypass grant (personal rules, "Pre-authorized
 peer-review post-back" carve-out). The standing preview rule stays
-default for every other comment class — Slack, email, Paperclip card
+default for every other comment class — Slack, email, agency card
 comments, and any self-authored MR.
 
 ## Invariants — never waived, even in this skill
@@ -48,11 +49,19 @@ repo root, or from the environment — never hardcoded in this skill:
 | Placeholder | Value |
 |-------------|-------|
 | `<gitlab-cli>` | Team GitLab CLI wrapper (vault-backed auth) |
-| `<paperclip-agent>` | Default Paperclip agent UUID for peer-review feeds |
+| `<gitlab-host>` | GitLab instance hostname — documentation only; derived from the pasted MR URL |
+| `<agency-cli>` | The agent agency / task-board CLI command (card creation, agent listing, wake) |
+| `<paperclip-agent>` | Default agency agent UUID for peer-review feeds |
+| `<company-id>` | Agency company ID (environment-resolved) |
+| `<board-project-id>` | Agency board project ID (environment-resolved) |
 
 Equivalent environment variables use the uppercase placeholder name
 (e.g. `GITLAB_CLI`, `PAPERCLIP_AGENT`). The operator's handle is never
 configured here — it derives at runtime from the authenticated user.
+
+If any placeholder cannot be resolved from local config or the
+environment, stop and ask — do not guess, and never fall back silently.
+(`<gitlab-host>` is exempt: it derives at runtime.)
 
 ## Procedure
 
@@ -80,7 +89,7 @@ configured here — it derives at runtime from the authenticated user.
    green-light a mutation.
 
 2b. **Agent override.** If `--agent <name>` was given, resolve the
-    name to a FULL UUID via `paperclipai agent list` and use that
+    name to a FULL UUID via `<agency-cli> agent list` and use that
     UUID for `--assignee-agent-id` and `agent wake` — never pass a
     shortname (shortname lookup returns `422: Agent shortname lookup
     requires companyId query parameter`). Without `--agent`, use
@@ -112,35 +121,45 @@ configured here — it derives at runtime from the authenticated user.
      contract" below).
    - **GitLab API guidance** (below).
 
-4. **Create and feed** — assign at creation, then wake:
+4. **Create and feed — assign at creation; do NOT also wake.** The
+   assignment itself wakes the assigned agent with a BOUND run (the
+   card is its launch context). Firing an explicit `agent wake` on top
+   of the assignment spawns a SECOND, unbound twin run ~1s later —
+   two concurrent runs of one agent on one card (the documented
+   duplicate-dispatch collision). Assign OR wake, never both:
 
    ```bash
-   paperclipai issue create --company-id <company-id> \
+   <agency-cli> issue create --company-id <company-id> \
      --project-id <board-project-id> \
      --title "peer review + post findings: <mr-url>" \
      --description "$(cat card.md)" \
      --assignee-agent-id <paperclip-agent> --status todo
-   paperclipai agent wake <paperclip-agent> --payload '{"issue":"<ID>"}'
    ```
 
    The company and board project IDs are environment-resolved, never
    hardcoded.
 
-5. **Verify assignment** — a create/wake "success" is not proof:
+5. **Verify the run spawned** — a create "success" is not proof:
 
    ```bash
-   paperclipai issue get <ID> | jq -r '"\(.status) \(.executionRunId // "none")"'
+   <agency-cli> issue get <ID> | jq -r '"\(.status) \(.executionRunId // "none")"'
    ```
 
    Expect `in_progress` with a spawned run. Report the identifier.
+   If NO run appears within a few minutes, wake ONCE as recovery —
+   waking ANOTHER agent requires board auth (agent-bearer auth can
+   only invoke itself): `env -u AGENCY_API_KEY <agency-cli> agent
+   wake <paperclip-agent> --payload '{"issue":"<ID>"}'` (adjust the
+   env var name to the agency CLI's key variable). Verify the first
+   run is actually absent before waking; never wake twice.
 
 ## The generated posting contract
 
-Every card includes this section, unchanged:
+Every card includes the following section VERBATIM, unchanged. It ends
+at the post-post verification bullet — nothing below the section belongs
+inside it:
 
 > 1. Run a dual review of the MR — security pass + devops pass, blind.
->    (Disposition cards: skip this step — post the outcome of the
->    already-completed review only.)
 > 2. Post the findings back to the MR as ONE standalone MR note
 >    (single comment, all findings), IMMEDIATELY after the review
 >    completes.
@@ -160,10 +179,16 @@ Every card includes this section, unchanged:
 > - After posting: re-fetch the note (GET .../notes, newest non-system
 >   note) and verify the landed text matches what was sent. Report the
 >   note ID.
->
-> The disposition paragraph below is included in the card ONLY when
-> `--disposition` was passed:
->
+
+The card's **Mode** line (see step 3) tells the fed agent which step 1
+to run: with `--disposition`, skip the review and post the outcome of
+the already-completed review only.
+
+## Disposition paragraph (--disposition cards only)
+
+Included in the card ONLY when `--disposition` was passed — never part
+of the verbatim contract block above:
+
 > With `--disposition`: instead of findings, post the outcome back —
 > one line per finding (fixed in `<sha>` / follow-up: `<url>` /
 > skipped: `<reason>`), plus merged sha + pipeline after a merge. This
