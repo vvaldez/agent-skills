@@ -55,3 +55,12 @@ into an existing deck. Merging into an existing deck is a Slides-UI import
   are set before upload.
 - If native layout control is later needed, a Slides API builder can join
   this plugin as a sibling skill without revisiting the plugin decision.
+- **Delivered amendment (2026-11-12, issue #44):** URL-preserving
+  regeneration is now possible via the hybrid path — the Drive-conversion
+  pipeline still cannot replace a Google-native file in place, so
+  `--into <deckId>` uploads a throwaway staging deck through the unchanged
+  Drive path, reads its structure through the Slides API, and rebuilds the
+  target natively (append new slides -> populate -> one atomic batchUpdate
+  deleting the old slides). This was the deferred Slides-API scope from the
+  context above; it arrived only when the URL-breakage need materialized,
+  and the Drive-only path remains the default for fresh decks.

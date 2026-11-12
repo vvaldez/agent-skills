@@ -52,7 +52,7 @@ Developer workflow and automation skills for AI coding agents. Built for daily u
 
 | Skill | Description |
 |-------|-------------|
-| `/deck-to-gslides` | Convert a markdown deck (quick-deck companion markdown or generic markdown) into a native, co-editable Google Slides presentation. Deterministic pandoc + Drive-conversion pipeline with built-in post-upload verification; Drive CLI is parameterized via `DECK_GSLIDES_DRIVE_CLI`. |
+| `/deck-to-gslides` | Convert a markdown deck (quick-deck companion markdown or generic markdown) into a native, co-editable Google Slides presentation. Deterministic pandoc + Drive-conversion pipeline with built-in post-upload verification; with `--into <deckId>`, rebuilds an existing deck in place preserving its URL. Drive/Slides CLI is parameterized via `DECK_GSLIDES_DRIVE_CLI`. |
 
 ## Install
 
@@ -148,7 +148,7 @@ Skills follow the [Agent Skills](https://agentskills.io) open standard. Copy the
 - **`/spec-to-mr`**: `git`, a GitLab CLI wrapper with vault-backed auth, an unlocked Bitwarden vault, `shellcheck`, a pipeline-polling helper, and a code-review setup with reviewer subagents. Same `CLAUDE.local.md` convention as `/issue-to-spec`.
 - **`/drain`**: `git`; optionally a GitLab CLI wrapper with vault-backed auth + an unlocked Bitwarden vault (issues sink degrades to "skip, say so" when locked), the `wt` helper (git-state sink, for the recommended `wt clean`), and the personal-rules seeder at `~/repos/agent-rules/scripts/seed-personal-rules.sh` (lessons sink; the skill reports and stops if it is absent).
 - **`/local-review`**: OS check up front, then one of two stacks, both **not bundled here**. Windows: PowerShell 5.1, an LM Studio worker with a model loaded, and the `localllm` tooling (set `LOCALLLM_HOME` if it is not at `~/tools/localllm`). macOS: `opencode` + `python3`, a read-only `local-reviewer` opencode agent (created once via the agent-tools `local-agent` SETUP), and a model registered in `opencode.jsonc` (default `deepseek-r1:8b` via Ollama). Without its stack the skill reports the missing piece and stops; it deliberately does not fall back to reviewing the diff itself, since that would spend the context the skill exists to save.
-- **`/deck-to-gslides`**: `pandoc` and `python3`, plus a Drive-capable CLI configured via `DECK_GSLIDES_DRIVE_CLI` (single executable speaking the Drive-API file create/get convention shown in the skill). Auth wrappers are user-local — the shipped skill contains no CLI names, accounts, or hosts, per the `CLAUDE.local.md` convention.
+- **`/deck-to-gslides`**: `pandoc` and `python3`, plus a Drive-capable CLI configured via `DECK_GSLIDES_DRIVE_CLI` (single executable speaking the Drive-API file create/get convention — and the Slides `presentations get`/`batchUpdate` convention for `--into` — shown in the skill). Auth wrappers are user-local — the shipped skill contains no CLI names, accounts, or hosts, per the `CLAUDE.local.md` convention.
 
 ## License
 
