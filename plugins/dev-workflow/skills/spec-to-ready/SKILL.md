@@ -6,7 +6,8 @@ description: >
   /spec-to-ready <issue-url> — stage 1 runs /spec-to-mr (implement,
   review, verify, push the MR, ship-and-stop); stage 2 feeds a
   code-review TRIPLE ULTRA (secops + devops + tui-ux reviewers blind,
-  one reviewer explicitly pinned to the models-corp qwen3.8-27b model,
+  one reviewer explicitly pinned to the locally configured
+  `<review-model>`,
   plus a review-critic wave) to a DIFFERENT agent, fixing all surviving
   findings; stage 3 feeds a final dual review (secops + devops) to a
   third agent, same treatment. Nobody in the pipeline merges: the end
@@ -27,7 +28,7 @@ different agent:
 
 1. **Stage 1** — implement + push the MR (the /spec-to-mr loop).
 2. **Stage 2** — triple ultra review + fix-all by a second agent (one
-   reviewer pinned to qwen3.8-27b).
+   reviewer pinned to `<review-model>`).
 3. **Stage 3** — final dual review + fix-all by a third agent.
 
 End state: the operator reviews and merges. Nobody in the pipeline
@@ -41,11 +42,12 @@ repo root, or from the environment — never hardcoded in this skill:
 | Placeholder | Value |
 |-------------|-------|
 | `<gitlab-host>` | Team GitLab instance hostname — documentation only; the actual host comes from the pasted URL or `git remote get-url origin` |
-| `glab-cee-with-bw` / `glab-cee` | Team GitLab CLI wrapper (vault-backed auth); plain `glab` may carry a revoked keyring |
-| `check-pipeline` | Pipeline polling helper |
-| `madisonj` | Designated reviewer's GitLab handle |
-| `ci-user@<vm>` | Linux test VM as `user@host` |
-| `<workspace-agents>` | Agent names available for stage assignment |
+| `<gitlab-cli>` | Team GitLab CLI command (single executable; may wrap auth) |
+| `<pipeline-check>` | Pipeline polling helper command |
+| `<reviewer>` | Designated reviewer's handle |
+| `<vm-target>` | Linux test VM as `user@host` |
+| `<review-model>` | Model ID for the pinned stage-2 reviewer (exact ID from the runtime's model list) |
+| `<agency-board>` | The agent agency / task board the team uses for cross-agent cards, if any |
 
 If a value is missing from local config, stop and ask — do not guess or
 hardcode it. (`<gitlab-host>` is exempt: it is derived at runtime.)
@@ -60,7 +62,8 @@ hardcode it. (`<gitlab-host>` is exempt: it is derived at runtime.)
   (or `.../-/issues/<N>`). Work-item ids and issue iids match on the
   same instance; if the work-items API 404s, resolve via the issues API.
 - One invocation covers the whole pipeline contract. Each stage is a
-  SEPARATE agent run (a Paperclip card, or a fresh subagent invocation);
+  SEPARATE agent run (a card on `<agency-board>`, or a fresh subagent
+  invocation);
   this skill defines each stage's contract and the handoff gates between
   them.
 
@@ -111,7 +114,7 @@ hardcode it. (`<gitlab-host>` is exempt: it is derived at runtime.)
   touch issue text and reference content that can carry secret material;
   the scan is not optional.
 - **Pipeline.** Poll by the FULL sha (`pipelines?sha=<full-sha>` — a
-  partial/truncated sha silently returns `[]`). `check-pipeline` can
+  partial/truncated sha silently returns `[]`). `<pipeline-check>` can
   hang silently — if it produces no output in ~60s, fall back to one
   direct `pipelines?sha=<full-sha>` API call. Red from your own
   commits → diagnose, fix, re-push (max 2 attempts). Red from
@@ -138,7 +141,7 @@ already covers the issue, report it and stop.
 Run `/spec-to-mr` with `--auto` on the issue — the deployed skill carries
 the full loop (read issue + references, adaptive gap analysis, worktree,
 implement, dual/triple review, VM verification, push with `Closes #N`,
-reviewer `madisonj`, assignee the operator, attribution footer).
+reviewer `<reviewer>`, assignee the operator, attribution footer).
 Verify the `--auto` mode exists first (`--help`); if absent, run the
 skill's loop with the same discipline spelled out here instead (skip
 interactive questions, decide with the recommended disposition, record
@@ -168,8 +171,8 @@ Card/run contract:
    per file/hunk with severity tiers (BLOCK / TRACK / NOTE); tag
    security findings `[security]`.
    **MODEL PIN:** exactly one reviewer — the `tui-ux-reviewer` (least
-   security-critical) — is explicitly invoked on the models-corp
-   qwen3.8-27b (fp8) model; pass the model in the task-tool invocation
+   security-critical) — is explicitly invoked on the `<review-model>`
+   model; pass the model in the task-tool invocation
    for that reviewer (exact ID from the runtime's model list). NEVER pin
    the secops or devops reviewer to a non-default model: the security
    axis always runs on the default reviewer model. Disclose which
@@ -244,7 +247,8 @@ operator — THE OPERATOR REVIEWS AND MERGES.
 
 ## Orchestrating the relay
 
-- **Paperclip agency:** one card per stage — the stage contract IS the
+- **Agency board (`<agency-board>`):** one card per stage — the stage
+  contract IS the
   card description (write it to a temp file, verify, then post).
   Assigned at creation to that stage's agent, woken at creation. The
   orchestrator (operator or a background watcher) polls each handoff
