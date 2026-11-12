@@ -10,14 +10,16 @@ agent-skills/
 │   └── marketplace.json          # Plugin manifest for Claude Code
 ├── decisions/                    # Architecture Decision Records
 │   ├── ADR-001-skill-extras-plugin.md
-│   └── ADR-002-parameterized-workflow-skills.md
+│   ├── ADR-002-parameterized-workflow-skills.md
+│   └── ADR-003-presentations-plugin.md
 ├── plugins/
 │   ├── dev-workflow/             # Git workflow tools (tidy, ship, stats)
 │   ├── automation/               # Ansible patterns (ansibleize)
 │   ├── skill-extras/             # Upstream skill compositions (grill-harness, overrides)
 │   ├── diagrams/                 # Red Hat branded diagram generation
 │   ├── handoff-extras/           # Session handoffs as GitHub issues
-│   └── local-model/              # Local inference review (local-review)
+│   ├── local-model/              # Local inference review (local-review)
+│   └── presentations/            # Deck publishing (deck-to-gslides)
 ├── README.md
 ├── DEVELOPMENT.md
 └── LICENSE

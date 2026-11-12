@@ -4,3 +4,7 @@ docs/grill-decisions/
 
 # personal stores — never commit to a public repo
 personal-rules/
+__pycache__/
+
+# deck-to-gslides scratch dirs (retained by --dry-run/--keep-pptx, or left by a killed run)
+.deck-to-gslides-*/
