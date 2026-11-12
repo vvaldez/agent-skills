@@ -101,13 +101,18 @@ Safety behavior:
 - A write-scope probe on the throwaway staging deck precedes any target
   mutation; a 403 (missing Slides scope) exits non-zero with re-auth
   guidance and mutates nothing.
-- The staging deck used for the rebuild is trashed afterward. The rebuilt
+- The staging deck used for the rebuild is trashed afterward (best-effort;
+  on failure a warning is printed and it remains in Drive). The rebuilt
   deck keeps its presentationId, URL, and Drive location.
 
 Fidelity is the same structured text as a fresh conversion: titles, bullets,
 native tables, speaker notes. Theme and layout mapping is by layout name
-between the staging and target decks (both come from the same pandoc
-pipeline, so names match); unknown layouts fall back to Blank.
+between the staging and target decks; unknown layout names fall back to
+Blank. When the target was itself produced by this pipeline the names
+match exactly. On a FOREIGN target deck (any deck not produced by this
+pipeline) every slide may map to Blank, and Blank slides often have no
+text placeholders - the script warns loudly when placeholder text cannot
+be rebuilt; tables and speaker notes still carry over.
 
 ## Expectations to set with the user
 
@@ -126,7 +131,11 @@ pipeline, so names match); unknown layouts fall back to Blank.
   authorized account. Ask the user to share it (editor) or confirm the ID.
   A Drive upload cannot write into an existing deck regardless; `--into`
   needs the same visibility (editor access to the target).
-- `--into` 403 -> the CLI's credentials lack the Slides write scope. The
-  script prints remediation (one-time re-auth including the Slides service)
-  and exits non-zero before any mutation. Do not retry blindly.
+- `--into` 403 on read (before the plan prints) -> the target may not be
+  shared (editor) with the authorized account, or the credential lacks read
+  scope. Nothing was mutated.
+- `--into` 403 on write -> the CLI's credentials lack the Slides write
+  scope (or a permission/quota problem arose mid-run). The script prints
+  the exact deck state (nothing mutated, or original slides intact plus
+  appended slides) and exits non-zero. Do not retry blindly.
 - Verification mimeType mismatch -> stop and report; do not retry blindly.

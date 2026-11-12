@@ -45,14 +45,13 @@ import zipfile
 PPTX_MIME = "application/vnd.openxmlformats-officedocument.presentationml.presentation"
 SLIDES_MIME = "application/vnd.google-apps.presentation"
 
-OBJECT_ID_MAX = 50  # Slides API object IDs: 5-50 chars, [a-zA-Z0-9_-]
-
 
 def eprint(*args):
     print(*args, file=sys.stderr)
 
 
-SENSITIVE_RE = re.compile(r"(?i)(token|key|secret|session|password)\S*=\S+")
+SENSITIVE_RE = re.compile(
+    r"(?i)(token|key|secret|session|password|bearer)\s*[=:]\s*\S+")
 
 
 def scrub(text, limit=200):
@@ -62,14 +61,20 @@ def scrub(text, limit=200):
 
 
 def run(cmd):
-    """Run a command, return (returncode, stdout, stderr). Never uses a shell."""
+    """Run a command, return (returncode, stdout, stderr). Never uses a shell.
+
+    Error strings never include cmd[0] (the configured CLI value) - the
+    caller's `what` label already identifies the failing call.
+    """
     try:
         proc = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
         return proc.returncode, proc.stdout, proc.stderr
     except FileNotFoundError:
-        return 127, "", "command not found: %s" % cmd[0]
+        return 127, "", "command not found"
     except subprocess.TimeoutExpired:
-        return 124, "", "timed out after 600s: %s" % cmd[0]
+        return 124, "", "timed out after 600s"
+    except OSError as exc:
+        return 126, "", "could not execute: %s" % exc
 
 
 def parse_api_json(text):
@@ -112,12 +117,23 @@ def utf16_len(text):
     return len(text.encode("utf-16-le")) // 2
 
 
-def scope_fail_exit(action):
+def scope_fail_exit(action, appended=0):
+    if appended:
+        eprint(
+            "error: the configured CLI's credentials lost Google Slides write "
+            "permission (HTTP 403) during %s.\n"
+            "The original slides are intact; the target deck additionally has "
+            "%d appended slide(s) from the partial rebuild.\n"
+            "Remediation: resolve the permission/quota problem, then rerun; "
+            "the rerun replaces the deck cleanly." % (action, appended)
+        )
+        return 1
     eprint(
         "error: the configured CLI's credentials lack Google Slides write "
         "permission (HTTP 403) while attempting %s.\n"
+        "Nothing was mutated.\n"
         "Remediation: run a one-time re-auth for the CLI that includes the "
-        "slides service, then rerun. Nothing was mutated." % action
+        "slides service, then rerun." % action
     )
     return 1
 
@@ -246,15 +262,17 @@ def shape_paragraphs(shape):
     cur = []
     for el in txt.get("textElements", []):
         if "textRun" in el:
-            cur.append(el["textRun"].get("content", "").replace("\n", " "))
+            cur.append(el["textRun"].get("content", ""))
         elif "paragraphMarker" in el:
             pm = el["paragraphMarker"]
             bullet = pm.get("bullet") or {}
-            paras.append("".join(cur))
+            # the paragraph-terminating \n rides on the last run of the
+            # paragraph; normalize it (and any stray newline) to nothing
+            paras.append("".join(cur).replace("\n", " ").strip())
             flags.append(bool(bullet))
             nestings.append(int(bullet.get("nestingLevel", 0) or 0))
             cur = []
-    paras.append("".join(cur))
+    paras.append("".join(cur).replace("\n", " ").strip())
     flags.append(False)
     nestings.append(0)
     while paras and not paras[-1].strip():
@@ -403,10 +421,9 @@ def rebuild_into(drive_cli, pptx_path, into_id, title, tgt):
             probe_req[0]["createSlide"]["slideLayoutReference"] = {"layoutId": probe_layout}
         try:
             slides_batch(drive_cli, staging_id, probe_req, "write-scope probe")
-        except ApiError as exc:
-            if exc.code == 403:
-                raise
-            # schema/argument problems would hit every deck; surface them loudly
+        except ApiError:
+            # fail closed: any probe failure (403 or otherwise) aborts before
+            # the target is touched
             raise
 
         # Phase A (non-destructive): append new slides (+ their tables) to the
@@ -454,6 +471,7 @@ def rebuild_into(drive_cli, pptx_path, into_id, title, tgt):
         # Phase B (non-destructive): populate the new slides' text, bullets,
         # table cells, and speaker notes.
         phase_b = []
+        dropped_text = []  # placeholder text with no matching fresh placeholder
         for i, (placeholders, tables) in enumerate(blueprints):
             sid = new_ids[i]
             new = fresh_by_id.get(sid) or {}
@@ -469,6 +487,9 @@ def rebuild_into(drive_cli, pptx_path, into_id, title, tgt):
             for ptype, src_list in src_by_type.items():
                 for (paras, flags, nestings), dst_id in zip(src_list, ph_ids.get(ptype, [])):
                     if not dst_id:
+                        if any(p.strip() for p in paras):
+                            dropped_text.append((i + 1, ptype,
+                                                 (paras[0] or "")[:50]))
                         continue
                     text = "\n".join(paras)
                     if not text.strip():
@@ -512,7 +533,15 @@ def rebuild_into(drive_cli, pptx_path, into_id, title, tgt):
         except ApiError as exc:
             eprint("error: phase B failed; new slides are appended but unpopulated and "
                    "the original slides are still intact. %s" % exc.message)
+            if exc.code == 403:
+                exc.appended = len(new_ids)
             raise
+        if dropped_text:
+            eprint("warning: %d placeholder(s) had text in the staging deck but no "
+                   "matching placeholder on the rebuilt slides (layout-name mapping "
+                   "fell back to Blank); their text was NOT rebuilt. Affected: %s"
+                   % (len(dropped_text),
+                      "; ".join("slide %d %s %r" % d for d in dropped_text[:5])))
 
         # Phase C (the ONLY destructive step, one atomic batchUpdate): delete the
         # old slides. The new slides were appended after them, so deletion both
@@ -524,25 +553,35 @@ def rebuild_into(drive_cli, pptx_path, into_id, title, tgt):
                          "rebuild phase C (atomic swap)")
         except ApiError as exc:
             eprint("error: phase C failed; the target deck still has its original "
-                   "slides plus N appended slides at the end. %s" % exc.message)
+                   "slides plus %d appended slides at the end. %s"
+                   % (len(new_ids), exc.message))
+            if exc.code == 403:
+                exc.appended = len(new_ids)
             raise
 
-        # Verification: re-fetch and assert what actually landed.
-        landed = slides_get(drive_cli, into_id,
-                            "presentationId,slides(objectId,slideProperties.notesPage)")
-        if landed.get("presentationId") != into_id:
-            raise ApiError(None, "verification: presentationId changed (%r != %r)"
-                           % (landed.get("presentationId"), into_id), "")
-        landed_slides = landed.get("slides", [])
-        expected = len(new_ids)
-        if len(landed_slides) != expected:
-            raise ApiError(None, "verification: landed %d slides, expected %d"
-                           % (len(landed_slides), expected), "")
-        expected_notes = sum(1 for s in src_slides if read_notes_text(s).strip())
-        landed_notes = sum(1 for s in landed_slides if read_notes_text(s).strip())
-        if landed_notes != expected_notes:
-            raise ApiError(None, "verification: landed %d slides with speaker notes, "
-                           "expected %d" % (landed_notes, expected_notes), "")
+        # Verification: re-fetch and assert what actually landed. At this point
+        # the destructive swap has ALREADY landed - be explicit about that if
+        # verification fails, so the user never misreads the deck's state.
+        try:
+            landed = slides_get(drive_cli, into_id,
+                                "presentationId,slides(objectId,slideProperties.notesPage)")
+            if landed.get("presentationId") != into_id:
+                raise ApiError(None, "verification: presentationId changed (%r != %r)"
+                               % (landed.get("presentationId"), into_id), "")
+            landed_slides = landed.get("slides", [])
+            expected = len(new_ids)
+            if len(landed_slides) != expected:
+                raise ApiError(None, "verification: landed %d slides, expected %d"
+                               % (len(landed_slides), expected), "")
+            expected_notes = sum(1 for s in src_slides if read_notes_text(s).strip())
+            landed_notes = sum(1 for s in landed_slides if read_notes_text(s).strip())
+            if landed_notes != expected_notes:
+                raise ApiError(None, "verification: landed %d slides with speaker notes, "
+                               "expected %d" % (landed_notes, expected_notes), "")
+        except ApiError:
+            eprint("error: the rebuild swap already completed - the deck now contains "
+                   "the rebuilt content; only the post-rebuild verification failed.")
+            raise
         return len(landed_slides), landed_notes
     finally:
         trash_file(drive_cli, staging_id)
@@ -567,7 +606,7 @@ def main():
     if args.into and args.folder:
         eprint("error: --folder cannot be combined with --into (the target deck keeps its location)")
         return 2
-    if args.into and not re.match(r"^[A-Za-z0-9_-]+$", args.into):
+    if args.into and not re.fullmatch(r"[A-Za-z0-9_-]+", args.into):
         eprint("error: --into expects a bare deck ID (the long token in the deck URL), not a URL")
         return 2
 
@@ -631,7 +670,15 @@ def main():
 
     # --into: plan (read-only), then either stop (dry-run) or rebuild in place.
     if args.into:
-        tgt = plan_rebuild(drive_cli, args.into, slides, notes)
+        try:
+            tgt = plan_rebuild(drive_cli, args.into, slides, notes)
+        except ApiError as exc:
+            if exc.code == 403:
+                eprint("error: could not read the target deck (HTTP 403). It may "
+                       "not be shared (editor) with the authorized account, or "
+                       "the credential lacks read scope. Nothing was mutated.")
+                return 1
+            raise
         if args.dry_run:
             print("dry-run: plan only, nothing was written to the target deck")
             return 0
@@ -640,7 +687,8 @@ def main():
                                                        title, tgt)
         except ApiError as exc:
             if exc.code == 403:
-                return scope_fail_exit("the in-place rebuild")
+                return scope_fail_exit("the in-place rebuild",
+                                       appended=getattr(exc, "appended", 0))
             eprint("error: rebuild failed: %s" % exc.message)
             if exc.code is None and exc.raw:
                 eprint(scrub(exc.raw))
