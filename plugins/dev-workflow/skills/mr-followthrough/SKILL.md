@@ -156,9 +156,9 @@ hardcode it. (`<gitlab-host>` is exempt: it is derived at runtime.)
       URL — only when the fix is wildly out of scope), or explicitly
       skipped with the reason. A finding with no accounting BLOCKS the
       merge: fix it, file it, or get the operator's explicit say-so —
-      never merge with unaccounted findings. The close-out reply (step
-      9) must carry one line per finding; a close-out reporting only
-      the merge status does not satisfy this gate.
+      never merge with unaccounted findings. The step-9 close-out must
+      carry one line per finding (see step 9's contract); a close-out
+      reporting only the merge status does not satisfy this gate.
     - **Approval evidence** — prefer (a); (b) and (c) supplement, never
       replace, server-side approval rules and branch protection:
       a. GitLab approval by a non-author
@@ -171,21 +171,24 @@ hardcode it. (`<gitlab-host>` is exempt: it is derived at runtime.)
          the final push (note `created_at` after the final pipeline's
          `created_at` — the pipeline's `updated_at` moves as jobs run,
          so it marks completion, not push time).
-         (Extend the phrase set here when the team's phrasing changes.), OR
+         (Extend the phrase set here when the team's phrasing changes),
+         OR
       c. **Prior approval surviving a rebase reset.** A rebase push
          resets every GitLab approval (system note: "reset approvals
          from @\<user\> by pushing to the branch") without changing the
          reviewed content — the approval counts. Read the system notes
          (`jq 'select(.system == true)'` on `.../notes`): a prior
          "approved this merge request" note by a handle in
-         `<approvers>` counts as approval evidence when everything
+         `<approvers>` who is NOT the MR author counts as approval
+         evidence when everything
          after it is a reset-by-push — no later approval retraction,
          no later human change-request comment, no new commits beyond
          the rebase itself. Present the FULL chain (approval note
          author + timestamp, every reset note timestamp, and any
          commits added after the approval) and require the explicit
-         confirm below. New commits or change requests after the
-         approval void (c) — fall back to (a)/(b) or do not merge.
+         confirm below. Any of the three voids (c) — a later approval
+         retraction, a later human change request, or new commits after
+         the approval — fall back to (a)/(b) or do not merge.
     - Present the detected approval evidence to the user and require an
       explicit confirm before calling merge. For (b) evidence, present
       the FULL note body (author, timestamp, verbatim text) — not just
