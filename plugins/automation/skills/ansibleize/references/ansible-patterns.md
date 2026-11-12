@@ -50,6 +50,8 @@
 34. [Key Variables](#key-variables)
 35. [Important Notes](#important-notes)
 36. [Collection Integration Testing: FQCN, Never Repo-Relative Paths](#collection-integration-testing-fqcn-never-repo-relative-paths)
+37. [failed_when and Module Crashes](#failed_when-and-module-crashes)
+38. [Empty Is Not Success: Fall Back on No-Data or Empty](#empty-is-not-success-fall-back-on-no-data-or-empty)
 
 ---
 
@@ -1349,7 +1351,7 @@ a summary, and gates:
   the result
 - Put the report in an `always:` block so a crashed check still reports the rest
 
-### failed_when and Module Crashes
+## failed_when and Module Crashes
 
 `failed_when: false` suppresses a module's reported failure. A module that raises
 (a Python exception) behaves differently by core version: on ansible-core 2.16 the
@@ -1380,7 +1382,7 @@ The shape check must match what the probe is for: `json is defined` proves
 reachability, not data presence — a 401 with a JSON error body passes it. For
 data-presence probes, require the payload itself (see the next section).
 
-### Empty Is Not Success: Fall Back on No-Data or Empty
+## Empty Is Not Success: Fall Back on No-Data or Empty
 
 An endpoint behind a path-mapping proxy can answer HTTP 200 with an empty body or
 an empty list instead of failing. Treat empty as no-data: trigger the fallback on
@@ -1396,6 +1398,17 @@ prefer the one with data.
 - ansible.builtin.set_fact:
     passed: "{{ (__probe is not failed and __probe.json | default([], true) | length > 0)
       or __fallback is not failed }}"
+```
+
+When merging results from two sources, prefer the one that actually carries
+data — an empty-but-successful primary must not mask a populated fallback:
+
+```yaml
+# [CORRECT] — merge prefers the source with data
+- ansible.builtin.set_fact:
+    resources: "{{ (__primary.json | default([], true) | length > 0)
+      | ternary(__primary.json | default([], true),
+                __fallback.json | default([], true)) }}"
 ```
 
 ## Avoid set_fact with loop for Data Filtering
@@ -1659,7 +1672,9 @@ undefined variables unless the second boolean argument is `true`.
 A value that is `None` (an undefined hostvar, a missing dict key, a crashed probe's
 result) renders as the empty string when stored with `set_fact`. The empty string is
 falsy but so is an empty list — truthiness cannot tell the sentinel from a real
-value. Type-test with `is not string` instead:
+value. Type-test instead, guarding every step of the chain: `is defined` first, then
+`is not string` (kills the `''` sentinel), then `is sequence` (kills a live `None`,
+which is not a string but would crash `length`), and only then the length check:
 
 ```yaml
 # [ANTI-PATTERN] — a defined-None key renders as ''; default([]) never runs
@@ -1668,10 +1683,12 @@ value. Type-test with `is not string` instead:
     # probed.resources = None (JSON null) renders '' — not []
     # (a None parent is caught: probed.resources is undefined there, so default([]) fires)
 
-# [CORRECT] — is not string separates a real list from the '' sentinel
+# [CORRECT] — defined → not string → sequence, then length (a live None
+# passes 'is not string' but would crash 'None | length'; 'is sequence' kills it)
 - ansible.builtin.set_fact:
     has_resources: "{{ probed.resources is defined
       and probed.resources is not string
+      and probed.resources is sequence
       and probed.resources | length > 0 }}"
 ```
 
@@ -2070,7 +2087,9 @@ build_iso_networking:
 - The `first_found` query with `errors='ignore'` gracefully handles missing platform files
 - Cross-host variable access uses `hostvars[hostname].variable` pattern
 
-# Collection Integration Testing: FQCN, Never Repo-Relative Paths
+---
+
+## Collection Integration Testing: FQCN, Never Repo-Relative Paths
 
 `ansible-test integration` runs targets from a copy under the installed collection
 (`tests/output/.tmp/integration/<target>-<random>/`), not the repo tree. A
