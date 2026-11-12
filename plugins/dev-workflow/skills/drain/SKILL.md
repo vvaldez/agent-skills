@@ -5,7 +5,7 @@ description: >
   captured and routes each item: new lessons → propose to LESSONS.md, undrained gaps →
   proposed GitLab issues, git state (merged/stale worktrees and branches, stray files) →
   reported with recommended actions. Always ends by syncing the session's outstanding
-  tasks to the sidebar todo list via /todo-sync. Non-destructive: it proposes and reports, and defers
+  work-tracking items to the sidebar todo list via /todo-sync. Non-destructive: it proposes and reports, and defers
   actual git cleanup to /tidy and wt clean. Use when the user says /drain, "drain the
   context", "is anything left in context", "what haven't we captured yet", "did we file
   the lessons", or wraps up a session and wants to make sure nothing durable was lost.
@@ -181,16 +181,22 @@ still awaiting user approval from Step 2, open MRs awaiting review, and the Step
 "sinks left for you" actions. This pass always runs — even when every sink comes up
 clean, run it and report "none outstanding" rather than skipping it silently.
 
+If the todo-sync skill is not available in this installation (it is a separate
+skill and may not be shipped everywhere), do not fail: list the outstanding items
+directly in the report's `Todos:` line instead — the sync is an affordance, not a
+hard dependency.
+
 ### Step 6: Final report
 
-End with one compact block. Omit a sink entirely if it is clean.
+End with one compact block. Omit a sink entirely if it is clean — EXCEPT the
+`Todos:` line, which is always shown (it reports the Step 5 sync either way).
 
 ```
 Drain Complete
   Lessons:   <N> proposed → <N> confirmed & written (hot regenerated) | none new
   Issues:    <N> proposed (not filed): <short titles>
   Git state: <N> merged worktrees → wt clean · <N> stale bases · <N> untracked files
-  Todos:     synced <N> outstanding items via /todo-sync | none outstanding
+  Todos:     synced <N> outstanding items via /todo-sync | none outstanding | listed below (todo-sync unavailable)
   Sinks left for you: <exact next commands, e.g. "wt clean --yes", "/tidy">
 ```
 
@@ -203,6 +209,9 @@ list of what remains and where to take it.
   and approved the **full text** of each lesson (batch approval only counts if every full
   bullet was shown).
 - NEVER file a GitLab/GitHub issue — propose only.
+- **Carve-out to the confirm-first posture:** the Step 5 sidebar-todo write is the
+  one sink drain performs without further confirmation (it only re-surfaces items
+  already proposed in this session's report).
 - NEVER run `wt clean`, `git worktree remove`, `git branch --delete`, `git reset --hard`,
   or `git clean` — recommend them; let `/tidy` and `wt clean` do the deleting.
 - NEVER re-file a lesson already in `LESSONS.md` — check first (key the search on the
